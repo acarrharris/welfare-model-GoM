@@ -84,7 +84,7 @@ replace st_error=sqrt(st_error)
 global costs
 
 *Adjust for inflation (https://www.bls.gov/data/inflation_calculator.htm)
-replace total_exp = total_exp*1.08
+replace total_exp = total_exp*1.02
 
 encode mode1, gen(mode2)
 svy: mean total_exp  if inlist(st,23, 33, 25) & mode1!="sh"
@@ -93,6 +93,7 @@ svy: mean total_exp if state=="NC"
 
 keep if inlist(st,23, 33, 25)
 
+svy: mean total_exp 
 
 
 tempfile new

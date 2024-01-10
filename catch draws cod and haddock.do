@@ -23,7 +23,6 @@ w    = wave
 clear
 mata: mata clear
 clear matrix 
-set matsize 10000
 set maxvar  120000
 version 12.1
 

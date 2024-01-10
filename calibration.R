@@ -25,9 +25,8 @@ pds = list()
 periodz=as.factor(directed_trips$period2)
 levels(periodz)
 
-
 for(p in levels(periodz)){
-  #p<- "17_fh"
+  #p<- 17
   directed_trips_p = subset(directed_trips, period2 == p)
   n_trips = mean(directed_trips_p$dtrip)
   #n_draws = min(1000,n_trips*2.5 )
@@ -43,7 +42,7 @@ for(p in levels(periodz)){
   #obtain the month for the period and draw from the relevant catch file 
   month <-as.numeric(directed_trips_p[1,]$month)
   month1 <- sprintf("%02d", month)
-
+  
   # Set up an output file for catch draw files 
   dfs = list()
   
@@ -53,7 +52,7 @@ for(p in levels(periodz)){
     #######
     #GOM_catch_data = data.frame(read.csv(paste0('simulated_catch_',month1, '.csv')))
     GOM_catch_data = subset(catch_data_all, period2==p)
-
+    
     cod_tot_cat = GOM_catch_data$tot_cat_cod
     hadd_tot_cat = GOM_catch_data$tot_cat_hadd
     GOM_catch_data = data.frame(cod_tot_cat,hadd_tot_cat)
@@ -68,7 +67,7 @@ for(p in levels(periodz)){
     #see if there is positive catch for all species; if not, then skip the keep/release allocation 
     catch_check_cod<-sum(GOM_catch_data$cod_tot_cat)
     catch_check_hadd<-sum(GOM_catch_data$hadd_tot_cat)    
-
+    
     
     GOM_catch_data$tripid = 1:nrow(GOM_catch_data)
     codd_hadd_catch_data = GOM_catch_data
@@ -285,7 +284,7 @@ for(p in levels(periodz)){
     
     
     
-   trip_data[is.na(trip_data)] = 0
+    trip_data[is.na(trip_data)] = 0
     
     
     trip_data$catch_draw=i
@@ -294,7 +293,7 @@ for(p in levels(periodz)){
   }
   
   #trip_data_test<- trip_data %>% 
-   # dplyr::filter(tot_rel_cod.x!=tot_rel_cod.y)
+  # dplyr::filter(tot_rel_cod.x!=tot_rel_cod.y)
   
   #combine all the catch draw files 
   dfs_all<- list.stack(dfs, fill=TRUE)
@@ -316,6 +315,34 @@ pds_all[is.na(pds_all)] = 0
 
 
 rm(pds)
+
+#Now assess the correlation in catch versus the correlation in keep (boat mode only)
+#To do so, draw 10,000 catch draws in proportion to the the number of trips across the period 
+#Then compute kendall's tau for catch and for keep and save in the output list. 
+# directed_trips<-directed_trips %>% 
+#   mutate(percent_of_trips=dtrip/sum(dtrip), 
+#          number_trips_to_sample=round(percent_of_trips*5000))
+#  write_xlsx(directed_trips,"directed_trips.xlsx") 
+
+
+keep_rel_pairs<- stratified(pds_all, "period", 
+                            size=c("9_fh"=18,"10_fh"=88,"11_fh"=86,"12_fh"=28,"13_fh"=59,"14_fh"=217,
+                                   "15_fh"=84,"16_fh"=106,"17_fh"=87,"18_fh"=87,"19_fh"=5,"20_fh"=7,
+                                   "7_pr"=397,"9_pr"=245,"10_pr"=230,"11_pr"=403,"12_pr"=353,"13_pr"=266,
+                                   "14_pr"=594,"15_pr"=256,"16_pr"=214,"17_pr"=221,"18_pr"=382,"19_pr"=57,
+                                   "21_pr"=512))
+
+ktau_keep<- cor(keep_rel_pairs$tot_keep_cod, 
+                keep_rel_pairs$tot_keep_hadd, method = c("kendall"))
+
+ktau_catch<- cor(keep_rel_pairs$tot_cod_catch, 
+                 keep_rel_pairs$tot_hadd_catch, method = c("kendall"))
+
+keep_rel_pairs<- as.data.frame(cbind(ktau_keep,ktau_catch), names="TRUE")
+keep_rel_pairs<-keep_rel_pairs %>% 
+  dplyr::mutate(draw=x)
+keep_rel_pairs[[x]]<- keep_rel_pairs
+
 
 #pds_all<-subset(pds_all, select=-c(tot_bsb_catch.x,tot_bsb_catch.y, tot_scup_catch.x, tot_scup_catch.y))
 
@@ -355,7 +382,7 @@ for(p in levels(periodz)){
   # trip_data$cost<-rnorm(nrow(trip_data), mean=55.50573,sd= 3.966326)
   # trip_data[is.na(trip_data)] <- 0
   # trip_data$cost<-ifelse(trip_data$cost<0, 0,trip_data$cost )
-
+  
   #Create random draws of preference parameters based on the estimated means and SD from the choice model
   param_draws = as.data.frame(1:n_drawz)
   names(param_draws)[1] <- 'tripid'
@@ -394,7 +421,7 @@ for(p in levels(periodz)){
   
   #Avidities
   avid_distn <- data.frame(read.csv(file.path(here::here("angler CE demographics.csv")))) 
-
+  
   
   #next two commands ensure there are enough observations per period
   expand_rows=ceiling((n_drawz/nrow(avid_distn)))+2
@@ -413,23 +440,23 @@ for(p in levels(periodz)){
   param_draws<-param_draws %>% 
     dplyr::left_join(avid_distn, by="tripid") 
   
-
-  
-#now merge the utility parameters, ages and avidities to the trip data
-
-trip_data<- trip_data %>%
-  dplyr::left_join(param_draws, by = c("tripid",  "period"))
   
   
-
+  #now merge the utility parameters, ages and avidities to the trip data
+  
+  trip_data<- trip_data %>%
+    dplyr::left_join(param_draws, by = c("tripid",  "period"))
+  
+  
+  
   # Costs_new_state data sets will retain raw trip outcomes from the baseline scenario. 
   # We will merge these data to the prediction year outcomes to calculate changes in CS. 
   costs_new[[p]] = subset(trip_data, select=c(tripid, cost, catch_draw, tot_keep_cod, tot_rel_cod,
-                                                 tot_keep_hadd, tot_rel_hadd, beta_cost, beta_opt_out, beta_sqrt_cod_keep, 
-                                                 beta_sqrt_cod_release, beta_sqrt_cod_hadd_keep, 
-                                                 beta_sqrt_hadd_keep, beta_sqrt_hadd_release,beta_opt_out_age, 
-                                                 beta_opt_out_likely, beta_opt_out_prefer, 
-                                                 likely_to_fish, fish_pref_more))
+                                              tot_keep_hadd, tot_rel_hadd, beta_cost, beta_opt_out, beta_sqrt_cod_keep, 
+                                              beta_sqrt_cod_release, beta_sqrt_cod_hadd_keep, 
+                                              beta_sqrt_hadd_keep, beta_sqrt_hadd_release,beta_opt_out_age, 
+                                              beta_opt_out_likely, beta_opt_out_prefer, 
+                                              likely_to_fish, fish_pref_more, age))
   
   names(costs_new[[p]])[names(costs_new[[p]]) == "tot_keep_cod"] = "tot_keep_cod_base"
   names(costs_new[[p]])[names(costs_new[[p]]) == "tot_rel_cod"] = "tot_rel_cod_base"
@@ -443,12 +470,12 @@ trip_data<- trip_data %>%
   #Expected utility
   trip_data<-  trip_data%>% 
     dplyr::mutate(vA=
-    beta_sqrt_cod_keep*sqrt(trip_data$tot_keep_cod) +
-    beta_sqrt_cod_release*sqrt(trip_data$tot_rel_cod) +  
-    beta_sqrt_hadd_keep*sqrt(trip_data$tot_keep_hadd) +
-    beta_sqrt_hadd_release*sqrt(trip_data$tot_rel_hadd) + 
-    beta_sqrt_cod_hadd_keep*(sqrt(trip_data$tot_keep_cod)*sqrt(trip_data$tot_keep_hadd)) +
-    beta_cost*trip_data$cost) %>% 
+                    beta_sqrt_cod_keep*sqrt(trip_data$tot_keep_cod) +
+                    beta_sqrt_cod_release*sqrt(trip_data$tot_rel_cod) +  
+                    beta_sqrt_hadd_keep*sqrt(trip_data$tot_keep_hadd) +
+                    beta_sqrt_hadd_release*sqrt(trip_data$tot_rel_hadd) + 
+                    beta_sqrt_cod_hadd_keep*(sqrt(trip_data$tot_keep_cod)*sqrt(trip_data$tot_keep_hadd)) +
+                    beta_cost*trip_data$cost) %>% 
     dplyr::select(-id)
   
   
@@ -466,9 +493,9 @@ trip_data<- trip_data %>%
   mean_trip_data <- mean_trip_data %>%
     data.table::as.data.table() %>%
     .[, vA_optout := beta_opt_out*opt_out+
-                     beta_opt_out_age*age + 
-                     beta_opt_out_likely*likely_to_fish +
-                     beta_opt_out_prefer*fish_pref_more] %>%
+        beta_opt_out_age*age + 
+        beta_opt_out_likely*likely_to_fish +
+        beta_opt_out_prefer*fish_pref_more] %>%
     .[alt==1, expon_vA := exp(vA)] %>%
     .[alt==2, expon_vA := exp(vA_optout)]
   
@@ -482,7 +509,7 @@ trip_data<- trip_data %>%
     data.table::as.data.table() %>%
     .[, prob0 :=expon_vA/vA_col_sum]
   
-
+  
   mean_trip_data<- subset(mean_trip_data, alt==1)
   
   all_vars<-c()
@@ -496,8 +523,8 @@ trip_data<- trip_data %>%
   # Get rid of things we don't need. 
   mean_trip_data <- mean_trip_data %>% 
     dplyr::select(prob0, period, tripid, tot_hadd_catch,tot_cod_catch, tot_keep_cod, tot_keep_hadd,tot_rel_cod, tot_rel_hadd)
-    
-    
+  
+  
   mean_trip_data <- mean_trip_data %>%
     data.table::as.data.table()
   
@@ -526,7 +553,7 @@ trip_data<- trip_data %>%
                  "tot_hadd_catch","tot_keep_hadd","tot_rel_hadd",
                  "prob0","n_choice_occasions" )
   
-
+  
   mean_trip_data <- mean_trip_data %>%
     data.table::as.data.table() %>%
     .[,as.vector(list_names) := lapply(.SD, function(x) x * expand), .SDcols = list_names] %>%
@@ -572,42 +599,42 @@ rm(costs_new)
 
 ###Compare calibration model output with MRIP 
 
- MRIP_data <- data.frame( read.csv("total AB1B2 2020 GoM.csv"))
+# MRIP_data <- data.frame( read.csv("total AB1B2 2020 GoM.csv"))
+# # 
+# # 
+# # 
+# ##cod
+# sum(pds_new_all$tot_keep_cod)
+# sum(MRIP_data$cod_harvest)
+# cod_harvest_diff<-((sum(MRIP_data$cod_harvest)-sum(pds_new_all$tot_keep_cod))/sum(MRIP_data$cod_harvest))*100
+# cod_harvest_diff
+# 
+# sum(pds_new_all$tot_rel_cod)
+# sum(MRIP_data$cod_releases)
+# cod_rel_diff<-((sum(MRIP_data$cod_releases)-sum(pds_new_all$tot_rel_cod))/sum(MRIP_data$cod_releases))*100
+# cod_rel_diff
+# 
+# sum(pds_new_all$tot_cod_catch)
+# sum(MRIP_data$cod_tot_cat)
+# cod_tot_cat_diff<-((sum(MRIP_data$cod_tot_cat)-sum(pds_new_all$tot_cod_catch))/sum(MRIP_data$cod_tot_cat))*100
+# cod_tot_cat_diff
 # 
 # 
 # 
-##cod
-sum(pds_new_all$tot_keep_cod)
-sum(MRIP_data$cod_harvest)
-cod_harvest_diff<-((sum(MRIP_data$cod_harvest)-sum(pds_new_all$tot_keep_cod))/sum(MRIP_data$cod_harvest))*100
-cod_harvest_diff
-
-sum(pds_new_all$tot_rel_cod)
-sum(MRIP_data$cod_releases)
-cod_rel_diff<-((sum(MRIP_data$cod_releases)-sum(pds_new_all$tot_rel_cod))/sum(MRIP_data$cod_releases))*100
-cod_rel_diff
-
-sum(pds_new_all$tot_cod_catch)
-sum(MRIP_data$cod_tot_cat)
-cod_tot_cat_diff<-((sum(MRIP_data$cod_tot_cat)-sum(pds_new_all$tot_cod_catch))/sum(MRIP_data$cod_tot_cat))*100
-cod_tot_cat_diff
-
-
-
-
-##haddock
-sum(pds_new_all$tot_keep_hadd)
-sum(MRIP_data$hadd_harvest)
-hadd_harvest_diff<-((sum(MRIP_data$hadd_harvest)-sum(pds_new_all$tot_keep_hadd))/sum(MRIP_data$hadd_harvest))*100
-hadd_harvest_diff
-
-sum(pds_new_all$tot_rel_hadd)
-sum(MRIP_data$hadd_releases)
-hadd_rel_diff<- ((sum(MRIP_data$hadd_releases)-sum(pds_new_all$tot_rel_hadd))/sum(MRIP_data$hadd_releases))*100
-hadd_rel_diff
-
-sum(pds_new_all$tot_hadd_catch)
-sum(MRIP_data$hadd_tot_cat)
-hadd_tot_cat_diff<-((sum(MRIP_data$hadd_tot_cat)-sum(pds_new_all$tot_hadd_catch))/sum(MRIP_data$hadd_tot_cat))*100
-hadd_tot_cat_diff
+# 
+# ##haddock
+# sum(pds_new_all$tot_keep_hadd)
+# sum(MRIP_data$hadd_harvest)
+# hadd_harvest_diff<-((sum(MRIP_data$hadd_harvest)-sum(pds_new_all$tot_keep_hadd))/sum(MRIP_data$hadd_harvest))*100
+# hadd_harvest_diff
+# 
+# sum(pds_new_all$tot_rel_hadd)
+# sum(MRIP_data$hadd_releases)
+# hadd_rel_diff<- ((sum(MRIP_data$hadd_releases)-sum(pds_new_all$tot_rel_hadd))/sum(MRIP_data$hadd_releases))*100
+# hadd_rel_diff
+# 
+# sum(pds_new_all$tot_hadd_catch)
+# sum(MRIP_data$hadd_tot_cat)
+# hadd_tot_cat_diff<-((sum(MRIP_data$hadd_tot_cat)-sum(pds_new_all$tot_hadd_catch))/sum(MRIP_data$hadd_tot_cat))*100
+# hadd_tot_cat_diff
 
