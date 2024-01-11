@@ -1,28 +1,741 @@
+
+
+
+
 ---
-title: "index"
-output: html_document
+title: "GoM cod and haddock RDM"
+author: "Lou Carr-Harris"
+date: "December 28th, 2023" 
+output: html_document   
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(comment = NA)
+cat('<pre>')
+pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape",
+                 "doBy","WriteXLS","Rcpp", "ggplot2","dplyr", "rlist","fitdistrplus",
+                 "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
+                 "logspline","readr","data.table","conflicted", "readxl", "writexl", "stringr",
+                 "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc", "sjPlot", "gridExtra")
+install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
+lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("select", "dplyr")
+conflict_prefer("mutate", "dplyr")
+conflict_prefer("rename", "dplyr")
+conflict_prefer("summarize", "dplyr")
+conflict_prefer("summarise", "dplyr")
+conflict_prefer("count", "dplyr")
+```
+This file is an exploratory analysis of the effect of climate-induced shifts in angler catch-per-trip of Gulf of Maine cod and haddock. Results are based on 100 iterations of the recreation demand model. The RDM is calibrated to 2020 fishery conditions.   
+
+### Baseline (2020) fishery statistics
+```{r echo = FALSE}
+calib_data <- readRDS("calibration_data_all.rds")
+calib_data<-calib_data %>% 
+  dplyr::group_by(draw) %>% 
+dplyr::summarise(estimated_trips=sum(estimated_trips),
+                 tot_cod_catch= sum(tot_cod_catch), 
+                 tot_keep_cod = sum(tot_keep_cod), 
+                 tot_rel_cod = sum(tot_rel_cod), 
+                 
+                 tot_hadd_catch = sum(tot_hadd_catch), 
+                 tot_keep_hadd = sum(tot_keep_hadd),
+                 tot_rel_hadd = sum(tot_rel_hadd),
+                 
+                 n_choice_occasions = sum(n_choice_occasions)) %>% 
+  dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
+                hadd_keep_i=tot_keep_hadd/n_choice_occasions,
+                cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips)
+```
+Cod keep per choice occasion
+```{r echo = FALSE}
+# Summarize
+baseline <- calib_data %>% 
+  summarise(
+    mean = round(mean(cod_keep_i), 4),
+    sd = round(sd(cod_keep_i), 4)) 
+print.data.frame(baseline, row.names = FALSE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+Cod keep per trip
+```{r echo = FALSE}
+# Summarize
+baseline <- calib_data %>% 
+  summarise(
+    mean = round(mean(cod_keep_trip), 4),
+    sd = round(sd(cod_keep_trip), 4)) 
+print.data.frame(baseline, row.names = FALSE)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+Haddock keep per choice occasion
+```{r echo = FALSE}
+# Summarize
+baseline <- calib_data %>% 
+  summarise(
+    mean = round(mean(hadd_keep_i), 4),
+    sd = round(sd(hadd_keep_i), 4)) 
+print.data.frame(baseline, row.names = FALSE)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Haddock keep per trip
+```{r echo = FALSE}
+# Summarize
+baseline <- calib_data %>% 
+  summarise(
+    mean = round(mean(hadd_keep_trip), 4),
+    sd = round(sd(hadd_keep_trip), 4)) 
+print.data.frame(baseline, row.names = FALSE)
+```
+<div style="margin-bottom:50x;">
+</div>
+### Baseline welfare calculations
+After calibrating the simulation model to 2020 fishery conditions, I re-ran the model under two closure scenarios: (a) bag limits for both cod and haddock set to zero, and (b) bag limits for cod only set to zero.  
+$~$
+```{r include = FALSE}
+library(readxl)
+full_closure<-data.frame(read_excel("baseline_welfare.xlsx"))
+full_closure<-full_closure %>% 
+  dplyr::mutate(scenario="full_closure")
+
+cod_closure<-data.frame(read_excel("baseline_welfare_close_cod.xlsx"))
+cod_closure<-cod_closure %>% 
+  dplyr::mutate(scenario="cod_closure")
+
+join_df=rbind.fill(full_closure,cod_closure)
+join_df<-join_df %>% dplyr::select(-group)
+
+cv_sum_full_closure<- full_closure$cv_sum
+cv_sum_full_cod_closure<- cod_closure$cv_sum
+```
+<div style="margin-bottom:50x;">
+</div>
+#### Scenario (a): close both fisheries 
+CV per choice occasion
+```{r echo = FALSE}
+# Summarize
+full_closure1 <- full_closure %>% 
+  summarise(
+    mean = round(mean(cv_i), 2),
+    sd = round(sd(cv_i), 2)) 
+print.data.frame(full_closure1, row.names = FALSE)
+```
+Aggregate CV
+```{r echo = FALSE}
+full_closure1 <- full_closure %>% 
+  summarise(
+    mean = round(mean(cv_sum), 2),
+    sd = round(sd(cv_sum), 2))
+print.data.frame(full_closure1, row.names = FALSE)
+```
+
+Number of trips under closure
+```{r echo = FALSE}
+full_closure1 <- full_closure %>% 
+  summarise(
+    mean = round(mean(ntrips_sum), 2),
+    sd = round(sd(ntrips_sum), 2))
+print.data.frame(full_closure1, row.names = FALSE)
+``` 
+
+Number of trips under baseline fishery
+```{r echo = FALSE}
+full_closure1 <- full_closure %>% 
+  summarise(
+    mean = round(mean(ntrips_sum_baseline), 2),
+    sd = round(sd(ntrips_sum_baseline), 2) )
+print.data.frame(full_closure1, row.names = FALSE)
+```
+
+Percent reduction in trips from baseline fishery
+```{r echo = FALSE}
+full_closure1 <- full_closure %>% 
+  summarise(
+    mean = round(mean( ((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline)*100), 2),
+    sd = round(sd(((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline)*100), 2) )
+print.data.frame(full_closure1, row.names = FALSE)
+```
+<div style="margin-bottom:50px;">
+</div>
+#### Scenario (b): close cod only 
+CV per choice occasion
+```{r echo = FALSE}
+# Summarize
+cod_closure1<-cod_closure %>%
+  summarise(
+    mean = round(mean(cv_i), 2),
+    sd = round(sd(cv_i), 2))
+print.data.frame(cod_closure1, row.names = FALSE)
+```
+Aggregate CV
+```{r echo = FALSE}
+cod_closure1<-cod_closure %>%
+  summarise(
+    mean = round(mean(cv_sum), 2),
+    sd = round(sd(cv_sum), 2))
+print.data.frame(cod_closure1, row.names = FALSE)
+```
+
+Number of trips under closure
+```{r echo = FALSE}
+cod_closure1<-cod_closure %>%
+  summarise(
+    mean = round(mean(ntrips_sum), 2),
+    sd = round(sd(ntrips_sum), 2))
+print.data.frame(cod_closure1, row.names = FALSE)
+``` 
+
+ Number of trips under baseline fishery
+```{r echo = FALSE}
+cod_closure1<-cod_closure %>%
+  summarise(    
+    mean = round(mean(ntrips_sum_baseline), 2),
+    sd = round(sd(ntrips_sum_baseline), 2))
+print.data.frame(cod_closure1, row.names = FALSE)
+```
+Percent reduction in trips from baseline fishery
+```{r echo = FALSE}
+cod_closure1 <- cod_closure %>% 
+  summarise(
+    mean = round(mean( ((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline)*100), 2),
+    sd = round(sd(((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline)*100), 2) )
+print.data.frame(cod_closure1, row.names = FALSE)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+### Fishery outcomes under climate-induced changes in catch-per-trip
+Each tab contains projected fishery outcomes based on input data from alternative copula models. 
+
+## {.tabset}
+
+### Clayton (independent catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_clayton_ind.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+
+### Clayton (correlated catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_clayton_corr.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+
+### Gumbel (independant catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_gumbel_ind.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### Gumbel (correlated catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_gumbel_corr.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### Frank (independent catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_frank_ind.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### Frank (correlated catch)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data<- read_excel("predictions_1_3_frank_corr.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data, aes(x=decade, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma, breaks=seq(-70,-30,5))
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data, aes(x=decade, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data, aes(x=decade, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### All copulas (correlated catch, decade=1)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data1<- read_excel("predictions_1_3_frank_corr.xlsx") 
+predictions_data1 <-predictions_data1 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==1)
+
+predictions_data2<- read_excel("predictions_1_3_clayton_corr.xlsx") 
+predictions_data2 <-predictions_data2 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==1)
+
+predictions_data3<- read_excel("predictions_1_3_gumbel_corr.xlsx") 
+predictions_data3 <-predictions_data3 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==1)
+
+predictions_data4<-rbind(predictions_data1, predictions_data2, predictions_data3)
+
+
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data4, aes(x=copula, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data4, aes(x=copula, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### All copulas (correlated catch, decade=4)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data1<- read_excel("predictions_1_3_frank_corr.xlsx") 
+predictions_data1 <-predictions_data1 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==4)
+
+predictions_data2<- read_excel("predictions_1_3_clayton_corr.xlsx") 
+predictions_data2 <-predictions_data2 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==4)
+
+predictions_data3<- read_excel("predictions_1_3_gumbel_corr.xlsx") 
+predictions_data3 <-predictions_data3 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==4)
+
+predictions_data4<-rbind(predictions_data1, predictions_data2, predictions_data3)
+
+
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data4, aes(x=copula, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data4, aes(x=copula, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+### All copulas (correlated catch, decade=8)
+Cod and haddock keep per choice occasion:
+
+```{r echo = FALSE}
+predictions_data1<- read_excel("predictions_1_3_frank_corr.xlsx") 
+predictions_data1 <-predictions_data1 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==8)
+
+predictions_data2<- read_excel("predictions_1_3_clayton_corr.xlsx") 
+predictions_data2 <-predictions_data2 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==8)
+
+predictions_data3<- read_excel("predictions_1_3_gumbel_corr.xlsx") 
+predictions_data3 <-predictions_data3 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  filter(decade==8)
+
+predictions_data4<-rbind(predictions_data1, predictions_data2, predictions_data3)
+
+
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cod_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="cod keep per choice occasion", label=comma)
+
+plot2<-ggplot(predictions_data4, aes(x=copula, y=hadd_keep_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+```{r echo = FALSE}
+plot1<-ggplot(predictions_data4, aes(x=copula, y=cv_i)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("CV per choice occasion", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=ntrips_sum)) + 
+  geom_violin() + geom_boxplot(width=0.1)+
+  scale_y_continuous("Total number of trips", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+```{r echo = FALSE}
+plot1<- ggplot(predictions_data4, aes(x=copula, y=k_tau_catch_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+
+  scale_y_continuous("Correlation in catch-per-trip", label=comma)
+
+plot2<- ggplot(predictions_data4, aes(x=copula, y=k_tau_keep_est)) + 
+  geom_violin() + geom_boxplot(width=0.1)+ geom_hline(yintercept=0, linetype="dashed", color = "red")+ 
+  scale_y_continuous("Correlation in keep-per-trip", label=comma)
+
+grid.arrange(plot1, plot2, ncol=2)
+```
+## {-}
