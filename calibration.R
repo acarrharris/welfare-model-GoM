@@ -26,7 +26,7 @@ periodz=as.factor(directed_trips$period2)
 levels(periodz)
 
 for(p in levels(periodz)){
-  #p<- 17
+  #p<- "11_pr"
   directed_trips_p = subset(directed_trips, period2 == p)
   n_trips = mean(directed_trips_p$dtrip)
   #n_draws = min(1000,n_trips*2.5 )
@@ -324,24 +324,37 @@ rm(pds)
 #          number_trips_to_sample=round(percent_of_trips*5000))
 #  write_xlsx(directed_trips,"directed_trips.xlsx") 
 
-
-keep_rel_pairs<- stratified(pds_all, "period", 
+keep_rel_pairs<- pds_all 
+keep_rel_pairs<- stratified(keep_rel_pairs, "period", 
                             size=c("9_fh"=18,"10_fh"=88,"11_fh"=86,"12_fh"=28,"13_fh"=59,"14_fh"=217,
                                    "15_fh"=84,"16_fh"=106,"17_fh"=87,"18_fh"=87,"19_fh"=5,"20_fh"=7,
                                    "7_pr"=397,"9_pr"=245,"10_pr"=230,"11_pr"=403,"12_pr"=353,"13_pr"=266,
                                    "14_pr"=594,"15_pr"=256,"16_pr"=214,"17_pr"=221,"18_pr"=382,"19_pr"=57,
                                    "21_pr"=512))
 
-ktau_keep<- cor(keep_rel_pairs$tot_keep_cod, 
-                keep_rel_pairs$tot_keep_hadd, method = c("kendall"))
 
-ktau_catch<- cor(keep_rel_pairs$tot_cod_catch, 
-                 keep_rel_pairs$tot_hadd_catch, method = c("kendall"))
+ktau_keep<- cor.test(keep_rel_pairs$tot_keep_cod, 
+                     keep_rel_pairs$tot_keep_hadd, method = c("kendall"))
 
-keep_rel_pairs<- as.data.frame(cbind(ktau_keep,ktau_catch), names="TRUE")
+k_tau_keep_est<-ktau_keep[["estimate"]]
+k_tau_keep_p<- ktau_keep[["p.value"]]
+
+ktau_catch<- cor.test(keep_rel_pairs$tot_cod_catch, 
+                      keep_rel_pairs$tot_hadd_catch, method = c("kendall"))
+
+k_tau_catch_est<-ktau_catch[["estimate"]]
+k_tau_catch_p<- ktau_catch[["p.value"]]
+
+# keep_rel_pairs<- stratified(pds_all, "period", 
+#                             size=c("9_fh"=18,"10_fh"=88,"11_fh"=86,"12_fh"=28,"13_fh"=59,"14_fh"=217,
+#                                    "15_fh"=84,"16_fh"=106,"17_fh"=87,"18_fh"=87,"19_fh"=5,"20_fh"=7,
+#                                    "7_pr"=397,"9_pr"=245,"10_pr"=230,"11_pr"=403,"12_pr"=353,"13_pr"=266,
+#                                    "14_pr"=594,"15_pr"=256,"16_pr"=214,"17_pr"=221,"18_pr"=382,"19_pr"=57,
+#                                    "21_pr"=512))
+# 
+keep_rel_pairs<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
 keep_rel_pairs<-keep_rel_pairs %>% 
   dplyr::mutate(draw=x)
-keep_rel_pairs[[x]]<- keep_rel_pairs
 
 
 #pds_all<-subset(pds_all, select=-c(tot_bsb_catch.x,tot_bsb_catch.y, tot_scup_catch.x, tot_scup_catch.y))
@@ -595,6 +608,95 @@ rm(pds_new)
 costs_new_all=list.stack(costs_new, fill=TRUE)
 costs_new_all[is.na(costs_new_all)] = 0
 rm(costs_new)
+
+
+
+
+#ktau by month 
+period_vec <- directed_trips %>% 
+  dplyr::select(period2, dtrip, month) 
+
+period_to_month<-period_vec %>% 
+  dplyr::distinct(period2, month, .keep_all = TRUE) %>% 
+  dplyr::group_by(month) %>% 
+  dplyr::summarise(dtrip_sum = sum(dtrip)) %>% 
+  dplyr::left_join(period_vec, by="month") %>% 
+  dplyr::ungroup() %>% 
+  dplyr:: mutate(trip_props = dtrip/dtrip_sum, 
+                 n_sample=round(5000*trip_props)) 
+
+domains=as.factor(period_to_month$period2)
+levels(domains)
+
+for(z in levels(domains)){
+  assign(paste0("ntrip_", z), mean(period_to_month[(period_to_month$period2 == z),]$n_sample))
+}
+
+keep_rel_pairs<- pds_all %>% 
+  dplyr::select(period, tot_cod_catch,tot_keep_cod,tot_rel_cod,tot_hadd_catch,tot_keep_hadd,tot_rel_hadd )
+
+keep_rel_pairs<- stratified(keep_rel_pairs, "period", 
+                            size=c("9_fh"=ntrip_9_fh,"10_fh"=ntrip_10_fh,"11_fh"=ntrip_11_fh,"12_fh"=ntrip_12_fh,
+                                   "13_fh"=ntrip_13_fh,"14_fh"=ntrip_14_fh,"15_fh"=ntrip_15_fh,"16_fh"=ntrip_16_fh,
+                                   "17_fh"=ntrip_17_fh,"18_fh"=ntrip_18_fh,"19_fh"=ntrip_19_fh,"20_fh"=ntrip_20_fh,
+                                   "7_pr"=ntrip_7_pr,"9_pr"=ntrip_9_pr,"10_pr"=ntrip_10_pr,"11_pr"=ntrip_11_pr,
+                                   "12_pr"=ntrip_12_pr,"13_pr"=ntrip_13_pr,"14_pr"=ntrip_14_pr,"15_pr"=ntrip_15_pr,
+                                   "16_pr"=ntrip_16_pr,"17_pr"=ntrip_17_pr,"18_pr"=ntrip_18_pr,"19_pr"=ntrip_19_pr,
+                                   "21_pr"=ntrip_21_pr))
+keep_rel_pairs<-keep_rel_pairs %>% 
+  dplyr::rename(period2=period) %>% 
+  dplyr::left_join(period_vec, by="period2") %>% 
+  dplyr::select(-dtrip)
+
+unique(keep_rel_pairs$month)
+keep_rel_pairs_month<-list()
+for(z in unique(keep_rel_pairs$month)){
+  keep_rel_pairs_m<-keep_rel_pairs %>% 
+    dplyr::filter(month==z)
+  
+  sum_keep_cod<-sum(keep_rel_pairs_m$tot_keep_cod)
+  
+  if(sum_keep_cod>0){
+  ktau_keep<- cor.test(keep_rel_pairs_m$tot_keep_cod, 
+                       keep_rel_pairs_m$tot_keep_hadd, method = c("kendall"))
+  
+  k_tau_keep_est<-ktau_keep[["estimate"]]
+  k_tau_keep_p<- ktau_keep[["p.value"]]
+  
+  ktau_catch<- cor.test(keep_rel_pairs_m$tot_cod_catch, 
+                        keep_rel_pairs_m$tot_hadd_catch, method = c("kendall"))
+  
+  k_tau_catch_est<-ktau_catch[["estimate"]]
+  k_tau_catch_p<- ktau_catch[["p.value"]]
+  
+  keep_rel_pairs_m<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
+  keep_rel_pairs_month[[z]]<-keep_rel_pairs_m %>% 
+    dplyr::mutate(month=z, draw=x)
+  }
+  
+  if(sum_keep_cod==0){
+
+    k_tau_keep_est<-0
+    k_tau_keep_p<- 1
+    
+    ktau_catch<- cor.test(keep_rel_pairs_m$tot_cod_catch, 
+                          keep_rel_pairs_m$tot_hadd_catch, method = c("kendall"))
+    
+    k_tau_catch_est<-ktau_catch[["estimate"]]
+    k_tau_catch_p<- ktau_catch[["p.value"]]
+    
+    keep_rel_pairs_m<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
+    keep_rel_pairs_month[[z]]<-keep_rel_pairs_m %>% 
+      dplyr::mutate(month=z, draw=x)
+}
+}
+keep_rel_pairs_month_all=list.stack(keep_rel_pairs_month, fill=TRUE)
+
+
+
+  
+
+
 
 
 ###Compare calibration model output with MRIP 

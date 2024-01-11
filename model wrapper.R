@@ -84,14 +84,16 @@ p_star_hadd_variable<- 0.45
 
 calibration_data_table_base<-list()
 cost_files_all_base<-list()
-keep_rel_pairs<-list
-# Start the clock!
-ptm <- proc.time()
+keep_rel_pairz<-list()
+keep_rel_pairz_month<-list()
 
-source("calibration.R")
-
-# Stop the clock
-proc.time() - ptm
+# # Start the clock!
+# ptm <- proc.time()
+# 
+# source("calibration.R")
+# 
+# # Stop the clock
+# proc.time() - ptm
 
 
 
@@ -105,19 +107,36 @@ calibration_data_table_base[[x]] <- pds_new_all
 
 costs_new_all$draw<-x
 cost_files_all_base[[x]] <- costs_new_all
+
+keep_rel_pairz[[x]] <- keep_rel_pairs
+
+keep_rel_pairz_month[[x]] <- keep_rel_pairs_month_all
+
 }
+
+period_to_month<-period_vec %>% 
+  dplyr::distinct(period2, month, .keep_all = TRUE)
 
 ###
 #save calibration output
 calibration_data_all= list.stack(calibration_data_table_base, fill=TRUE)
 calibration_data_all[is.na(calibration_data_all)] = 0
+calibration_data_all<-calibration_data_all %>% 
+  dplyr::mutate(period2=period) %>% 
+  dplyr::left_join(period_to_month, by="period2")
 saveRDS(calibration_data_all, file = "calibration_data_all.rds") 
 
 for (x in 1:100){
 cost_filez_all= cost_files_all_base[[x]]
 cost_filez_all[is.na(cost_filez_all)] = 0
-saveRDS(cost_filez_all, file = paste0("cost_files_all_draw_",x,".rds")) 
+saveRDS(cost_filez_all, file = paste0("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/cost_files/cost_files_all_draw_",x,".rds")) 
 }
+
+keep_rel_pairz_all= list.stack(keep_rel_pairz, fill=TRUE)
+saveRDS(keep_rel_pairz_all, file = "k_tau_values_calibration.rds") 
+
+keep_rel_pairz_month_all= list.stack(keep_rel_pairz_month, fill=TRUE)
+saveRDS(keep_rel_pairz_month_all, file = "k_tau_values_month_calibration.rds") 
 
 
 ###
@@ -554,6 +573,7 @@ write_xlsx(predictions_all,paste0("predictions_1_3", cop_name, "_", ind_or_corr,
 # Stop the clock
 proc.time() - ptm
 ##################
+
 
 
 

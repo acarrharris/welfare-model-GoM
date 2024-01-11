@@ -6,7 +6,7 @@
 title: "GoM cod and haddock RDM"
 author: "Lou Carr-Harris"
 date: "December 28th, 2023"
-output: html_document   
+output: word_document   
 ---
 
 ```{r setup, include=FALSE}

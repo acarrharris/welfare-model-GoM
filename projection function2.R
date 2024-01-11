@@ -8,14 +8,14 @@ catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip
 
 predictions_d<-list()
 
-for(d in 1:8){
+for(d in 1:2){
   #d<-1
   catch_data_all1<-catch_data_all %>% 
     dplyr::filter(decade==d)
 
 predictions<-list()
-for(x in 1:100){
-# x<-1
+for(x in 1:2){
+ #x<-1
 
 
 # Input the calibration output which contains the number of choice occasions needed to simulate
@@ -224,54 +224,6 @@ t<-ind_or_corr
     #rm(catch_data, catch_data0, catch_data1)
     
     
-    #Now assess the correlation in catch versus the correlation in keep (boat mode only)
-    #To do so, draw 5,000 catch draws in proportion to the the number of trips across the period 
-    #Then compute kendall's tau for catch and for keep and save in the output list. 
-    
-    # yrs<- c(1, 2, 3, 4, 5, 6, 7, 8)
-    # ktaus<-list()
-    # for(y in yrs){
-      keep_rel_pairs<- trip_data %>% 
-        dplyr::filter(decade==d) %>% 
-        dplyr::mutate(tot_cod_catch=tot_keep_cod+tot_rel_cod, 
-                      tot_hadd_catch=tot_keep_hadd+tot_rel_hadd)
-      
-      keep_rel_pairs<- stratified(keep_rel_pairs, "period2", 
-                                  size=c("9_fh"=18,"10_fh"=88,"11_fh"=86,"12_fh"=28,"13_fh"=59,"14_fh"=217,
-                                         "15_fh"=84,"16_fh"=106,"17_fh"=87,"18_fh"=87,"19_fh"=5,"20_fh"=7,
-                                         "7_pr"=397,"9_pr"=245,"10_pr"=230,"11_pr"=403,"12_pr"=353,"13_pr"=266,
-                                         "14_pr"=594,"15_pr"=256,"16_pr"=214,"17_pr"=221,"18_pr"=382,"19_pr"=57,
-                                         "21_pr"=512))
-      
-      
-      ktau_keep<- cor.test(keep_rel_pairs$tot_keep_cod, 
-                           keep_rel_pairs$tot_keep_hadd, method = c("kendall"))
-      
-      k_tau_keep_est<-ktau_keep[["estimate"]]
-      k_tau_keep_p<- ktau_keep[["p.value"]]
-      
-      ktau_catch<- cor.test(keep_rel_pairs$tot_cod_catch, 
-                            keep_rel_pairs$tot_hadd_catch, method = c("kendall"))
-      
-      k_tau_catch_est<-ktau_catch[["estimate"]]
-      k_tau_catch_p<- ktau_catch[["p.value"]]
-      
-      keep_rel_pairs<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
-      keep_rel_pairs<-keep_rel_pairs %>% 
-        dplyr::mutate(decade=d, corr_type=t, copula=c, draw=x)
-      
-    #   ktaus[[y]]=keep_rel_pairs
-    #   
-    # }
-    # 
-    # ktaus_all<- list.stack(ktaus, fill=TRUE)
-    
-    
-    
-    
-    
-    
-    
     costs_new_all<- readRDS(here::here(paste0("cost_files/cost_files_all_draw_",x,".rds")))
     costs_new_all<-data.table(costs_new_all, key = c("period2", "catch_draw", "tripid"))
     
@@ -279,19 +231,6 @@ t<-ind_or_corr
     
     trip_data <- data.table(trip_data, key = c("period2", "catch_draw", "tripid"))
     trip_data<-data.frame(trip_data[costs_new_all])
-    
-    # trip_data <- trip_data %>% 
-    #   left_join(costs_new_all, by = c("period2","catch_draw","tripid")) 
-    
-    
-    # %>%
-    # trip_data <-trip_data %>% 
-    #   dplyr::arrange(decade, period2, tripid, catch_draw)
-    
-    
-    # period_vec1 <- period_vec %>%
-    #       group_by(period2) %>% mutate(tripid = row_number(period2))
-    
     
     #  utility (prediction year)
     trip_data <-trip_data %>%
@@ -382,6 +321,12 @@ t<-ind_or_corr
     
     mean_trip_data<- subset(mean_trip_data, alt==1)
     
+    mean_trip_data<- mean_trip_data %>% 
+      dplyr::mutate(tot_cod_cat=tot_keep_cod+tot_rel_cod, 
+                    tot_cod_cat_base=tot_keep_cod_base+tot_rel_cod_base, 
+                    tot_hadd_cat=tot_keep_hadd+tot_rel_hadd, 
+                    tot_hadd_cat_base=tot_keep_hadd_base+tot_rel_hadd_base)
+    
     # mean_trip_data1<-mean_trip_data %>% group_by(period,tripid) %>% summarise(across(everything(), mean), .groups = 'drop') %>% 
     #   tibble()
     
@@ -403,14 +348,13 @@ t<-ind_or_corr
                        beta_sqrt_cod_keep,beta_sqrt_cod_release,beta_sqrt_hadd_keep, 
                        beta_sqrt_hadd_release, catch_draw, cost_base,draw, expon_v0, 
                        expon_vA, fish_pref_more, likely_to_fish, opt_out,v0, v0_col_sum, 
-                       v0_optout, vA, vA_col_sum, vA_optout, tot_keep_cod_base,tot_keep_hadd_base, 
-                       tot_rel_cod_base, tot_rel_hadd_base, prob0)) 
+                       v0_optout, vA, vA_col_sum, vA_optout)) 
     
     
     # Multiply the average trip probability in the Alternative scenario (probA) 
     #by each of the catch variables ( the variables below) to get probability-weighted catch
     
-    list_names <- c("tot_keep_cod","tot_keep_hadd", "tot_rel_cod", "tot_rel_hadd" )
+    list_names <- c("tot_keep_cod","tot_keep_hadd", "tot_rel_cod", "tot_rel_hadd", "tot_cod_cat", "tot_hadd_cat")
     
     mean_trip_data <- mean_trip_data %>%
       as.data.table() %>%
@@ -420,8 +364,8 @@ t<-ind_or_corr
     # Multiply the average trip probability in the base scenario (prob0) 
     #by each of the catch variables to get probability-weighted catch
     
-    # list_names <- c("tot_keep_cod_base","tot_keep_hadd_base", "tot_rel_cod_base", "tot_rel_hadd_base" )
-    # 
+    # list_names <- c("tot_keep_cod_base","tot_keep_hadd_base", "tot_rel_cod_base", "tot_rel_hadd_base", 
+    #                 "tot_cod_cat_base", "tot_hadd_cat_base")
     # 
     # mean_trip_data <- mean_trip_data %>%
     #   as.data.table() %>%
@@ -447,13 +391,19 @@ t<-ind_or_corr
     #   dplyr::filter(decade==1)
     
     #Metrics at the choice occasion level
-    cv_i<- weighted.mean(trip_level_output$change_CS, trip_level_output$expand)
-    cod_keep_i<- weighted.mean(trip_level_output$tot_keep_cod, trip_level_output$expand)
-    hadd_keep_i<- weighted.mean(trip_level_output$tot_keep_hadd, trip_level_output$expand)
-    cod_rel_i<- weighted.mean(trip_level_output$tot_rel_cod, trip_level_output$expand)
-    hadd_rel_i<- weighted.mean(trip_level_output$tot_rel_hadd, trip_level_output$expand)
+    # cv_i<- weighted.mean(trip_level_output$change_CS, trip_level_output$expand)
+    # 
+    # cod_keep_i<- weighted.mean(trip_level_output$tot_keep_cod, trip_level_output$expand)
+    # hadd_keep_i<- weighted.mean(trip_level_output$tot_keep_hadd, trip_level_output$expand)
+    # 
+    # cod_rel_i<- weighted.mean(trip_level_output$tot_rel_cod, trip_level_output$expand)
+    # hadd_rel_i<- weighted.mean(trip_level_output$tot_rel_hadd, trip_level_output$expand)
+    #   
+    # cod_catch_i<- weighted.mean(trip_level_output$tot_cod_cat, trip_level_output$expand)
+    # hadd_catch_i<- weighted.mean(trip_level_output$tot_hadd_cat, trip_level_output$expand)
       
-      
+    
+    
     trip_level_output <- trip_level_output %>%
         as.data.table() %>%
         .[, cv_sum := expand*change_CS] %>%
@@ -461,61 +411,189 @@ t<-ind_or_corr
         .[, hadd_keep_sum := expand*tot_keep_hadd] %>%
         .[, cod_rel_sum := expand*tot_rel_cod] %>%
         .[, hadd_rel_sum := expand*tot_rel_hadd] %>%
+        .[, cod_catch_sum := expand*tot_cod_cat] %>%
+        .[, hadd_catch_sum := expand*tot_hadd_cat] %>%
         .[, ntrips_alt := expand*probA] 
       
     trip_level_output <- trip_level_output %>%
         mutate_if(is.numeric, replace_na, replace = 0)    
-      
-      
-    #Metrics a coast level 
-    cv_sum<- sum(trip_level_output$cv_sum)
-    cod_keep_sum<- sum(trip_level_output$cod_keep_sum)
-    hadd_keep_sum<- sum(trip_level_output$hadd_keep_sum)
-    cod_rel_sum<- sum(trip_level_output$cod_rel_sum)
-    hadd_rel_sum<- sum(trip_level_output$hadd_rel_sum)
-    ntrips_sum<-sum(trip_level_output$ntrips_alt)
-    n_choice_occasions_sum<-sum(calibration_data$n_choice_occasions)
+   
     
-    ##add k_tau values
-    # k_tauz_check<-  list.stack(ktau_values, fill=TRUE)
-    # 
-    # k_tauz_d1<-ktaus_all %>%
-    #   dplyr::filter(decade==1) %>% 
-    #   dplyr::mutate(data_type=paste0(as.character(corr_type),"", as.character(copula))) %>% 
-    #   dplyr::left_join(data_types, by="data_type") %>% 
-    #   dplyr::filter(data_type_num==k) %>% 
-    #   dplyr::select(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p, data_type_num)  
-      
-      
-      
-    # trip_level_output2<-trip_level_output4 %>% 
-    #   dplyr::filter(decade==d)
-    
-    
-  #   ktau_values[[x]]<-ktaus_all %>% dplyr::mutate(draw=x)
-  #   
-  #   
-  # }
+    #based on MRIP average weights across all modes. The number_weight var is set to "Weight"   
+    trip_level_output1<- trip_level_output %>% 
+      dplyr::group_by(month, decade) %>% 
+      dplyr::summarise(cv_sum = sum(cv_sum), 
+                       cod_keep_sum = sum(cod_keep_sum),
+                       hadd_keep_sum = sum(hadd_keep_sum),
+                       cod_rel_sum = sum(cod_rel_sum),
+                       hadd_rel_sum = sum(hadd_rel_sum),
+                       cod_catch_sum = sum(cod_catch_sum),
+                       hadd_catch_sum = sum(hadd_catch_sum),
+                       ntrips_alt_sum = sum(ntrips_alt),
+                       n_choice_occasions_sum = sum(expand),
+                       .groups = "drop") %>% 
+      dplyr::ungroup() 
   
-    predictions1<- as.data.frame(cbind(
-      cv_i,
-      cod_keep_i,
-      hadd_keep_i,
-      cod_rel_i,
-      hadd_rel_i,
-      
-      cv_sum,
-      cod_keep_sum,
-      hadd_keep_sum,
-      cod_rel_sum,
-      hadd_rel_sum,
-      ntrips_sum,
-      
-      n_choice_occasions_sum))
     
-    predictions[[x]]<-predictions1 %>% 
-      dplyr::mutate(decade=d, corr_type=t, copula=c, draw=x) %>% 
-      dplyr::left_join(keep_rel_pairs, by=c("decade", "corr_type", "copula", "draw"))
+    predictions0<-trip_level_output1 %>% 
+      dplyr::mutate(decade=d, corr_type=t, copula=c, draw=x) 
+    
+    
+    
+    #Now assess the correlation in catch versus the correlation in keep (boat mode only)
+    #To do so, draw 5,000 catch draws in proportion to the the number of trips across the period 
+    #Then compute kendall's tau for catch and for keep and save in the output list. 
+    
+    ###Annual correlations 
+    trip_level_output2<- trip_level_output %>% 
+      dplyr::group_by(period2, decade) %>% 
+      dplyr::summarise( ntrips_alt_sum = sum(ntrips_alt),
+                       n_choice_occasions_sum = sum(expand), .groups="drop") %>% 
+      dplyr::ungroup() %>% 
+      dplyr:: mutate(trip_sum = sum(ntrips_alt_sum), 
+                     trip_props = ntrips_alt_sum/trip_sum, 
+                     n_sample=round(5000*trip_props)) 
+    
+    domains=as.factor(trip_level_output2$period2)
+    levels(domains)
+    
+    for(z in levels(domains)){
+      assign(paste0("ntrip_", z), mean(trip_level_output2[(trip_level_output2$period2 == z),]$n_sample))
+    }
+
+    keep_rel_pairs<- trip_data %>% 
+      dplyr::filter(decade==d) %>% 
+      dplyr::mutate(tot_cod_catch=tot_keep_cod+tot_rel_cod, 
+                    tot_hadd_catch=tot_keep_hadd+tot_rel_hadd) %>% 
+      dplyr::select(period2, decade, tot_cod_catch,tot_keep_cod,tot_rel_cod,tot_hadd_catch,tot_keep_hadd,tot_rel_hadd )
+    
+    keep_rel_pairs<- stratified(keep_rel_pairs, "period2", 
+                                size=c("9_fh"=ntrip_9_fh,"10_fh"=ntrip_10_fh,"11_fh"=ntrip_11_fh,"12_fh"=ntrip_12_fh,
+                                       "13_fh"=ntrip_13_fh,"14_fh"=ntrip_14_fh,"15_fh"=ntrip_15_fh,"16_fh"=ntrip_16_fh,
+                                       "17_fh"=ntrip_17_fh,"18_fh"=ntrip_18_fh,"19_fh"=ntrip_19_fh,"20_fh"=ntrip_20_fh,
+                                       "7_pr"=ntrip_7_pr,"9_pr"=ntrip_9_pr,"10_pr"=ntrip_10_pr,"11_pr"=ntrip_11_pr,
+                                       "12_pr"=ntrip_12_pr,"13_pr"=ntrip_13_pr,"14_pr"=ntrip_14_pr,"15_pr"=ntrip_15_pr,
+                                       "16_pr"=ntrip_16_pr,"17_pr"=ntrip_17_pr,"18_pr"=ntrip_18_pr,"19_pr"=ntrip_19_pr,
+                                       "21_pr"=ntrip_21_pr))
+    
+    
+    ktau_keep<- cor.test(keep_rel_pairs$tot_keep_cod, 
+                         keep_rel_pairs$tot_keep_hadd, method = c("kendall"))
+    
+    k_tau_keep_est<-ktau_keep[["estimate"]]
+    k_tau_keep_p<- ktau_keep[["p.value"]]
+    
+    ktau_catch<- cor.test(keep_rel_pairs$tot_cod_catch, 
+                          keep_rel_pairs$tot_hadd_catch, method = c("kendall"))
+    
+    k_tau_catch_est<-ktau_catch[["estimate"]]
+    k_tau_catch_p<- ktau_catch[["p.value"]]
+    
+    keep_rel_pairs<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
+    keep_rel_pairs<-keep_rel_pairs %>% 
+      dplyr::mutate(decade=d, corr_type=t, copula=c, draw=x)
+    
+    
+    # #Monthly correlations ktau 
+    period_to_month<-period_vec %>% 
+      dplyr::distinct(period2, month, .keep_all = TRUE) #%>% 
+    
+    trip_level_output3<- trip_level_output %>% 
+      dplyr::group_by(period2, decade) %>% 
+      dplyr::summarise( ntrips_alt_sum = sum(ntrips_alt), .groups="drop") %>%
+      dplyr::left_join(period_to_month, by="period2")  
+      
+      # dplyr::ungroup() %>% 
+      # dplyr:: mutate(trip_sum = sum(ntrips_alt_sum), 
+      #                trip_props = ntrips_alt_sum/trip_sum, 
+      #                n_sample=round(5000*trip_props)) 
+    
+
+    trip_level_output4<-trip_level_output3 %>% 
+      dplyr::group_by(month) %>% 
+      dplyr::summarise(ntrips_alt_month_sum = sum(ntrips_alt_sum)) 
+      
+    trip_level_output4<-trip_level_output4 %>% 
+      dplyr::right_join(trip_level_output3, by="month") %>% 
+      dplyr::ungroup() %>% 
+      dplyr:: mutate(trip_props = ntrips_alt_sum/ntrips_alt_month_sum, 
+                     n_sample=round(5000*trip_props)) 
+    
+    domains=as.factor(trip_level_output4$period2)
+    levels(domains)
+    
+    for(z in levels(domains)){
+      assign(paste0("ntrip_", z), mean(trip_level_output4[(trip_level_output4$period2 == z),]$n_sample))
+    }
+    
+    keep_rel_pairs_month1<- trip_data %>% 
+      dplyr::mutate(tot_cod_catch=tot_keep_cod+tot_rel_cod, 
+                    tot_hadd_catch=tot_keep_hadd+tot_rel_hadd) %>% 
+      dplyr::select(period2, month, tot_cod_catch,tot_keep_cod,tot_rel_cod,tot_hadd_catch,tot_keep_hadd,tot_rel_hadd )
+    
+    keep_rel_pairs_month1<- stratified(keep_rel_pairs_month1, "period2", 
+                                size=c("9_fh"=ntrip_9_fh,"10_fh"=ntrip_10_fh,"11_fh"=ntrip_11_fh,"12_fh"=ntrip_12_fh,
+                                       "13_fh"=ntrip_13_fh,"14_fh"=ntrip_14_fh,"15_fh"=ntrip_15_fh,"16_fh"=ntrip_16_fh,
+                                       "17_fh"=ntrip_17_fh,"18_fh"=ntrip_18_fh,"19_fh"=ntrip_19_fh,"20_fh"=ntrip_20_fh,
+                                       "7_pr"=ntrip_7_pr,"9_pr"=ntrip_9_pr,"10_pr"=ntrip_10_pr,"11_pr"=ntrip_11_pr,
+                                       "12_pr"=ntrip_12_pr,"13_pr"=ntrip_13_pr,"14_pr"=ntrip_14_pr,"15_pr"=ntrip_15_pr,
+                                       "16_pr"=ntrip_16_pr,"17_pr"=ntrip_17_pr,"18_pr"=ntrip_18_pr,"19_pr"=ntrip_19_pr,
+                                       "21_pr"=ntrip_21_pr))
+
+    
+    unique(keep_rel_pairs_month1$month)
+    keep_rel_pairs_month<-list()
+    for(z in unique(keep_rel_pairs_month1$month)){
+      keep_rel_pairs_month2<-keep_rel_pairs_month1 %>% 
+        dplyr::filter(month==z)
+      
+      sum_keep_cod<-sum(keep_rel_pairs_month2$tot_keep_cod)
+      
+      if(sum_keep_cod>0){
+        ktau_keep<- cor.test(keep_rel_pairs_month2$tot_keep_cod, 
+                             keep_rel_pairs_month2$tot_keep_hadd, method = c("kendall"))
+        
+        k_tau_keep_est_mnth<-ktau_keep[["estimate"]]
+        k_tau_keep_p_mnth<- ktau_keep[["p.value"]]
+        
+        ktau_catch<- cor.test(keep_rel_pairs_month2$tot_cod_catch, 
+                              keep_rel_pairs_month2$tot_hadd_catch, method = c("kendall"))
+        
+        k_tau_catch_est_mnth<-ktau_catch[["estimate"]]
+        k_tau_catch_p_mnth<- ktau_catch[["p.value"]]
+        
+        keep_rel_pairs_month2<- as.data.frame(cbind(k_tau_keep_est_mnth,k_tau_keep_p_mnth, k_tau_catch_est_mnth, k_tau_catch_p_mnth), names="TRUE")
+        keep_rel_pairs_month[[z]]<-keep_rel_pairs_month2 %>% 
+          dplyr::mutate(month=z, draw=x)
+      }
+      
+      if(sum_keep_cod==0){
+        
+        k_tau_keep_est_mnth<-0
+        k_tau_keep_p_mnth<- 1
+        
+        ktau_catch<- cor.test(keep_rel_pairs_month2$tot_cod_catch, 
+                              keep_rel_pairs_month2$tot_hadd_catch, method = c("kendall"))
+        
+        k_tau_catch_est_mnth<-ktau_catch[["estimate"]]
+        k_tau_catch_p_mnth<- ktau_catch[["p.value"]]
+        
+        keep_rel_pairs_month2<- as.data.frame(cbind(k_tau_keep_est_mnth,k_tau_keep_p_mnth, k_tau_catch_est_mnth, k_tau_catch_p_mnth), names="TRUE")
+        keep_rel_pairs_month[[z]]<-keep_rel_pairs_month2 %>% 
+          dplyr::mutate(month=z, draw=x)
+      }
+    }
+    keep_rel_pairs_month_all=list.stack(keep_rel_pairs_month, fill=TRUE) 
+    keep_rel_pairs_month_all<-keep_rel_pairs_month_all  %>% 
+      dplyr::mutate(decade=d, corr_type=t, copula=c, draw=x)
+    
+    
+    
+    
+    predictions[[x]]<-predictions0 %>%  
+      dplyr::left_join(keep_rel_pairs, by=c("decade", "corr_type", "copula", "draw")) %>% 
+      dplyr::left_join(keep_rel_pairs_month_all, by=c("month", "decade", "corr_type", "copula", "draw")) 
+      
 
 }
   predictions2<-list.stack(predictions, fill=TRUE)
