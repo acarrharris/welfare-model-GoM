@@ -5,8 +5,10 @@
 ---
 title: "GoM cod and haddock RDM"
 author: "Lou Carr-Harris"
-date: "December 28th, 2023"
-output: word_document   
+<!-- date: "December 28th, 2023" -->
+<!-- output: word_document    -->
+permalink: /
+layout: default
 ---
 
 ```{r setup, include=FALSE}
