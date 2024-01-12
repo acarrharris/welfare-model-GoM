@@ -7,11 +7,8 @@ title: "GoM cod and haddock RDM"
 author: "Lou Carr-Harris"
 date: "`r Sys.Date()`"
 output: 
-html_document:
-    theme: journal
-    toc: yes
-    toc_float:
-      collapsed: true
+  html_document:
+    theme: cerulean
 ---
 
 ```{r setup, include=FALSE}

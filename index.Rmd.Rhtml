@@ -1,0 +1,307 @@
+
+
+
+
+---
+title: "GoM cod and haddock RDM"
+author: "Lou Carr-Harris"
+date: "2024-01-12"
+output: 
+html_document:
+    theme: journal
+    toc: yes
+    toc_float:
+      collapsed: true
+---
+
+
+This file is an exploratory analysis of the effect of climate-induced shifts in angler catch-per-trip of Gulf of Maine cod and haddock. Results are based on 100 iterations of the recreation demand model. The RDM is calibrated to 2020 fishery conditions.   
+
+### Baseline (2020) fishery statistics
+
+Cod keep per choice occasion
+
+```
+   mean     sd
+ 0.0102 0.0001
+```
+
+Cod keep per trip
+
+```
+   mean     sd
+ 0.0156 0.0002
+```
+
+Haddock keep per choice occasion
+
+```
+   mean     sd
+ 2.0878 0.0095
+```
+
+Haddock keep per trip
+
+```
+   mean     sd
+ 3.1926 0.0053
+```
+<div style="margin-bottom:50x;">
+</div>
+### Baseline welfare calculations
+After calibrating the simulation model to 2020 fishery conditions, I re-ran the model under two closure scenarios: (a) bag limits for both cod and haddock set to zero, and (b) bag limits for cod only set to zero.  
+$~$
+
+<div style="margin-bottom:50x;">
+</div>
+#### Scenario (a): close both fisheries 
+CV per choice occasion
+
+```
+  mean   sd
+ 66.12 0.47
+```
+Aggregate CV
+
+```
+     mean     sd
+ 31611797 174900
+```
+
+Number of trips under closure
+
+```
+   mean     sd
+ 256795 544.59
+```
+
+Number of trips under baseline fishery
+
+```
+   mean   sd
+ 312755 0.89
+```
+
+Percent reduction in trips from baseline fishery
+
+```
+   mean   sd
+ -17.89 0.17
+```
+<div style="margin-bottom:50px;">
+</div>
+#### Scenario (b): close cod only 
+CV per choice occasion
+
+```
+ mean   sd
+ 0.88 0.17
+```
+Aggregate CV
+
+```
+   mean    sd
+ 420214 81018
+```
+
+Number of trips under closure
+
+```
+   mean     sd
+ 312054 170.05
+```
+
+ Number of trips under baseline fishery
+
+```
+   mean   sd
+ 312755 0.85
+```
+Percent reduction in trips from baseline fishery
+
+```
+  mean   sd
+ -0.22 0.05
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+### Fishery outcomes under climate-induced changes in catch-per-trip
+Each tab contains projected fishery outcomes based on input data from alternative copula models. 
+
+## {.tabset}
+
+### Clayton (independent catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-19](figure/unnamed-chunk-19-1.png)
+
+
+### Clayton (correlated catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-20](figure/unnamed-chunk-20-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-1.png)
+
+
+### Gumbel (independant catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-23](figure/unnamed-chunk-23-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-25](figure/unnamed-chunk-25-1.png)
+
+### Gumbel (correlated catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-27](figure/unnamed-chunk-27-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-28](figure/unnamed-chunk-28-1.png)
+
+### Frank (independent catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-29](figure/unnamed-chunk-29-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-30](figure/unnamed-chunk-30-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-31](figure/unnamed-chunk-31-1.png)
+
+### Frank (correlated catch)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-32](figure/unnamed-chunk-32-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-33](figure/unnamed-chunk-33-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-34](figure/unnamed-chunk-34-1.png)
+
+### All copulas (correlated catch, decade=1)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-35](figure/unnamed-chunk-35-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-36](figure/unnamed-chunk-36-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-37](figure/unnamed-chunk-37-1.png)
+
+### All copulas (correlated catch, decade=4)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-38](figure/unnamed-chunk-38-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-39](figure/unnamed-chunk-39-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-40](figure/unnamed-chunk-40-1.png)
+
+### All copulas (correlated catch, decade=8)
+Cod and haddock keep per choice occasion:
+
+![plot of chunk unnamed-chunk-41](figure/unnamed-chunk-41-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+CV per choice occasion and number of trips:
+
+![plot of chunk unnamed-chunk-42](figure/unnamed-chunk-42-1.png)
+
+<div style="margin-bottom:50px;">
+</div>
+
+Correlation in catch and keep of cod and haddock per trip (kendall's tau-b):
+
+![plot of chunk unnamed-chunk-43](figure/unnamed-chunk-43-1.png)
+## {-}
