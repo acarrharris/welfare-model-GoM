@@ -5,8 +5,13 @@
 ---
 title: "GoM cod and haddock RDM"
 author: "Lou Carr-Harris"
-date: "December 28th, 2023" 
-output: html_document   
+date: "`r Sys.Date()`"
+output: 
+html_document:
+    theme: journal
+    toc: yes
+    toc_float:
+      collapsed: true
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +22,8 @@ pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape"
                  "doBy","WriteXLS","Rcpp", "ggplot2","dplyr", "rlist","fitdistrplus",
                  "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
                  "logspline","readr","data.table","conflicted", "readxl", "writexl", "stringr",
-                 "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc", "sjPlot", "gridExtra")
+                 "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc", "sjPlot", "gridExtra", 
+                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 conflict_prefer("filter", "dplyr")
