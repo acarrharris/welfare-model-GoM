@@ -2,19 +2,22 @@
 
 
 
+p_star_cod <- p_star_cod_variable
+p_star_hadd<-p_star_hadd_variable
+
 #profvis::profvis({
 
 catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip.csv")),  show_col_types = FALSE) 
 
 predictions_d<-list()
 
-for(d in 1:2){
+for(d in 1:8){
   #d<-1
   catch_data_all1<-catch_data_all %>% 
     dplyr::filter(decade==d)
 
 predictions<-list()
-for(x in 1:2){
+for(x in 1:100){
  #x<-1
 
 
