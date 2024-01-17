@@ -90,7 +90,7 @@ cod_closure<-cod_closure %>%
   dplyr::mutate(scenario="cod_closure")
 
 join_df=rbind.fill(full_closure,cod_closure)
-join_df<-join_df %>% dplyr::select(-group)
+join_df<-join_df #%>% dplyr::select(-group)
 
 cv_sum_full_closure<- full_closure$cv_sum
 cv_sum_full_cod_closure<- cod_closure$cv_sum
@@ -103,8 +103,8 @@ CV per choice occasion
 # Summarize
 full_closure1 <- full_closure %>% 
   summarise(
-    mean = round(mean(cv_i), 2),
-    sd = round(sd(cv_i), 2)) 
+    mean = round(mean(cv_sum/n_choice_occasions_sum), 2),
+    sd = round(sd(cv_sum/n_choice_occasions_sum), 2)) 
 print.data.frame(full_closure1, row.names = FALSE)
 ```
 Aggregate CV
@@ -150,8 +150,8 @@ CV per choice occasion
 # Summarize
 cod_closure1<-cod_closure %>%
   summarise(
-    mean = round(mean(cv_i), 2),
-    sd = round(sd(cv_i), 2))
+    mean = round(mean(cv_sum/n_choice_occasions_sum), 2),
+    sd = round(sd(cv_sum/n_choice_occasions_sum), 2)) 
 print.data.frame(cod_closure1, row.names = FALSE)
 ```
 Aggregate CV

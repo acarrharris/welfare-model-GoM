@@ -28,7 +28,9 @@ trip_level_output3=list()
 trip_level_output1=list()
 
 # Input the calibration output which contains the number of choice occasions needed to simulate
-calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
+#calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
+calibration_data <- calibration_data_all %>% 
+  dplyr::filter(draw==x)
 
 # Input regs
 #directed_trips <- as.data.frame(read.csv("directed trips and regulations 2020.csv"))
@@ -60,7 +62,6 @@ regs <- directed_trips_p %>%
   dplyr::select(period2,
                 cod_bag, cod_min, 
                 hadd_bag, hadd_min)
-
 
 
 catch_data <- catch_data_all %>%
@@ -226,11 +227,12 @@ catch_data <- catch_data_all %>%
     
     
     #names<- c(grep("*beta*", names(costs_new_all), value=TRUE, invert=TRUE))
-    costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
-      filter(catch_draw<=n_catch_draws) 
+    # costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
+    #   filter(catch_draw<=n_catch_draws) 
   
-    
-    
+    costs_new_all <- readRDS(paste0("cost_files/cost_files_all_draw_",x,".rds"))  %>% #tibble() %>% 
+      filter(catch_draw<=n_catch_draws) 
+
     # merge the trip data (summer flounder catch + lengths) with the other species data (numbers kept and released))
     trip_data <- trip_data %>% 
       left_join(costs_new_all, by = c("period2","catch_draw","tripid")) 

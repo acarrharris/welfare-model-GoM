@@ -28,7 +28,9 @@ trip_level_output3=list()
 trip_level_output1=list()
 
 # Input the calibration output which contains the number of choice occasions needed to simulate
-calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
+#calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
+calibration_data <- calibration_data_all %>% 
+  dplyr::filter(draw==x)
 
 # Input regs
 #directed_trips <- as.data.frame(read.csv("directed trips and regulations 2020.csv"))
@@ -226,7 +228,10 @@ rm(trip_data_hadd, catch_data_cod, cod_hadd_catch_data, cod_zero_catch, hadd_zer
 
 
 #names<- c(grep("*beta*", names(costs_new_all), value=TRUE, invert=TRUE))
-costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
+# costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
+#   filter(catch_draw<=n_catch_draws) 
+
+costs_new_all <- readRDS(paste0("cost_files/cost_files_all_draw_",x,".rds"))  %>% #tibble() %>% 
   filter(catch_draw<=n_catch_draws) 
 
 
