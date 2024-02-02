@@ -20,7 +20,7 @@ predictions<-list()
 for(x in 1:100){
  #x<-1
 
-
+set.seed(130+d+x)
 # Input the calibration output which contains the number of choice occasions needed to simulate
 #calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
 calibration_data <- readRDS("calibration_data_all.rds") %>% 
