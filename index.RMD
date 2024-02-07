@@ -9,6 +9,7 @@ date: "`r Sys.Date()`"
 output: 
   html_document:
     theme: cerulean
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -196,7 +197,6 @@ print.data.frame(cod_closure1, row.names = FALSE)
 Each tab contains projected fishery outcomes based on input data from alternative copula models. 
 
 ## {.tabset}
-
 ### Clayton (independent catch)
 Cod and haddock keep per choice occasion:
 
@@ -1030,10 +1030,6 @@ grid.arrange(plot1, plot2, ncol=2)
 ```
 
 ## {-}
-
-<div style="margin-bottom:50px;">
-</div>
-
 ### Monthly fishery outcomes under climate-induced changes in catch-per-trip
 Each tab contains projected fishery outcomes at the monthly level based on input data from alternative copula models. 
 
@@ -1045,11 +1041,8 @@ directed_trips_base<-directed_trips_base %>%
   dplyr::arrange(month, period, mode1)
 kable(directed_trips_base, caption = "Number of directed trips for cod and haddock in 2020.")
 ```
-<div style="margin-bottom:50px;">
-</div>
 
 ## {.tabset}
-
 ### Clayton (independent catch)
 Number of trips by month:
 
@@ -1777,11 +1770,6 @@ plot2
 
 
 ## {-}
-
-<div style="margin-bottom:50px;">
-</div>
-
-
 ### MC simulation #2a - annual fishery outcomes with alternative cod open seasons
 Each tab contains projected fishery outcomes based on input data from alternative copula models. Here, I opened the cod season in different periods across the year. 
 
@@ -1792,7 +1780,6 @@ I specified alternative cod open seasons by month for May, June, July, August, a
 In these simulations I use independent and correlated catch-per-trip data from the clayton copula model.
 
 ## {.tabset}
-
 ### Clayton (independent catch)
 Cod and haddock keep per choice occasion:
 
@@ -2128,7 +2115,6 @@ grid.arrange(plot1, plot2, ncol=2)
 
 
 ## {-}
-
 ### MC simulation #2b - monthly fishery outcomes with alternative cod open seasons
 Each tab contains projected fishery outcomes at the monthly level based on input data from alternative copula models. Here, I opened the cod season in different periods across the year. 
 
@@ -2139,7 +2125,6 @@ I specified alternative cod open seasons by month for May, June, July, August, a
 In these simulations I use independent and correlated catch-per-trip data from the clayton copula model.
 
 ## {.tabset}
-
 ### May open (correlated catch)
 Number of trips by month:
 
