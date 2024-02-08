@@ -1030,6 +1030,7 @@ grid.arrange(plot1, plot2, ncol=2)
 ```
 
 ## {-}
+
 ### Monthly fishery outcomes under climate-induced changes in catch-per-trip
 Each tab contains projected fishery outcomes at the monthly level based on input data from alternative copula models. 
 
@@ -1768,16 +1769,585 @@ plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=k_tau_catch_est_mnth)) 
 plot2
 ```
 
-
 ## {-}
-### MC simulation #2a - annual fishery outcomes with alternative cod open seasons
-Each tab contains projected fishery outcomes based on input data from alternative copula models. Here, I opened the cod season in different periods across the year. 
 
+### MC simulation #2a - annual fishery outcomes with alternative cod open seasons
 The baseline open season for cod in 2020 was Sep. 15-30 for private boat and September 7-October 8 for for-hire. Because the model time-step is bi-monthly (two periods per month: 1st half, 2nd half), I set the private open season to the 2nd half of September and the for-hire season to the 1st and 2nd half of September. Haddock was open all months except March and the first half of April (when there was no directed trips). 
 
 I specified alternative cod open seasons by month for May, June, July, August, and October. To do this, I open the 2nd half of the month for private boat mode, and I open the 1st and 2nd half of the month for the for-hire mode. 
 
 In these simulations I use independent and correlated catch-per-trip data from the clayton copula model.
+
+Main welfare results below show the difference in total CV between baseline cod open season, and cod open season in an alternative month.
+
+## {.tabset}
+### Independent (decade=1)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_ind.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_ind_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+``` 
+
+### Independent (decade=5)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_ind.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_ind_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+```
+
+### Independent (decade=8)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_ind.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_ind_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+```
+
+### Correlated (decade=1)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_corr.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_corr_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==1) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+``` 
+
+### Correlated (decade=5)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_corr.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_corr_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==5) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+```
+
+### Correlated (decade=8)
+```{r echo = FALSE}
+predictions_data_base<- read_excel("predictions__clayton_corr.xlsx") 
+predictions_data_base<-predictions_data_base %>% 
+  dplyr::mutate(closure_month=9) %>% 
+  dplyr::mutate(decade=as.character(decade))
+
+predictions_data<- read_excel("predictions__clayton_corr_cod_open_season.xlsx") 
+
+predictions_data<-predictions_data %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::bind_rows(predictions_data_base)  %>% 
+  dplyr::group_by(decade, draw, closure_month) %>% 
+  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+                   hadd_keep_sum=sum(hadd_keep_sum),
+                   cod_catch_sum=sum(cod_catch_sum), 
+                   hadd_catch_sum=sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   ntrips_sum=sum(ntrips_alt_sum),
+                   n_choices=sum(n_choice_occasions_sum),
+                   k_tau_keep_est=mean(k_tau_keep_est), 
+                   k_tau_catch_est=mean(k_tau_catch_est), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+                hadd_keep_i=hadd_keep_sum/n_choices,
+                cod_catch_i=cod_catch_sum/n_choices,
+                hadd_catch_i=hadd_catch_sum/n_choices,
+                cv_i=cv_sum/n_choices) %>% 
+  dplyr::rename(open_month=closure_month)
+  
+predictions_test_9<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(9)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw) %>% 
+   dplyr::rename(cv_sum_9=cv_sum) 
+
+predictions_test_5<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(5)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_5=cv_sum) %>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_5) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+predictions_test_6<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(6)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_6=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_6) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+ 
+
+predictions_test_7<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(7)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_7=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_7) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+   
+predictions_test_8<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(8)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_8=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_8) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+    
+predictions_test_10<-predictions_data %>% 
+   dplyr::filter(open_month %in% c(10)) %>% 
+   dplyr::filter(decade==8) %>% 
+   dplyr::select(cv_sum, draw, open_month) %>% 
+   dplyr::rename(cv_sum_10=cv_sum)%>% 
+   dplyr::left_join(predictions_test_9, by="draw") %>% 
+   dplyr::mutate(diff_cv=cv_sum_9-cv_sum_10) %>% 
+   dplyr::select(draw, diff_cv, open_month)
+
+predictions_test<-rbind(predictions_test_10, predictions_test_8, predictions_test_7,predictions_test_6, predictions_test_5 )
+
+predictions_test<-predictions_test %>% 
+    mutate(open_month=as.factor(open_month))
+
+ggplot(predictions_test, aes(x=open_month, y=diff_cv)) +
+  geom_violin() + 
+  geom_boxplot(width=0.1)+
+  labs(x="Cod fishery open month", y=expression("CV"["open Sept."]-"CV"["open X"])) +
+  ggtitle("Difference in total CV relative to baseline")
+```
+
+## {-}
+
+Each tab below contains projected fishery outcomes based on input data from alternative copula models. Here, I opened the cod season in different periods across the year.
 
 ## {.tabset}
 ### Clayton (independent catch)
@@ -2115,6 +2685,7 @@ grid.arrange(plot1, plot2, ncol=2)
 
 
 ## {-}
+
 ### MC simulation #2b - monthly fishery outcomes with alternative cod open seasons
 Each tab contains projected fishery outcomes at the monthly level based on input data from alternative copula models. Here, I opened the cod season in different periods across the year. 
 
