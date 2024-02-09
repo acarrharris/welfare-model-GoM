@@ -18,7 +18,7 @@ pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape"
                  "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
                  "logspline","readr","data.table","conflicted", "readxl", "writexl", 
                  "plyr" , "furrr", "profvis", "future", "Hmisc", "SDMTools", "tictoc", "rpudplus", 
-                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte")
+                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "rstatix", "ggpubr")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 conflict_prefer("filter", "dplyr")
@@ -29,6 +29,7 @@ conflict_prefer("summarize", "dplyr")
 conflict_prefer("summarise", "dplyr")
 conflict_prefer("count", "dplyr")
 options(scipen = 100, digits = 5)
+
 
 
 ###Input data### 

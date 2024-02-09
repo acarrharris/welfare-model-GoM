@@ -34,6 +34,23 @@ conflict_prefer("count", "dplyr")
 ```
 This file is an exploratory analysis of the effect of climate-induced shifts in angler catch-per-trip of Gulf of Maine cod and haddock. Results are based on 100 iterations of the recreation demand model. The RDM is calibrated to 2020 fishery conditions.   
 
+### Decadal bottom trends
+Mean monthly bottom temps by decade, red line indicates annual average. Bars represent mean temp +/- 1.96*standard dev.   
+```{r echo = FALSE}
+bt_temp_project <- data.frame(read_csv("decadal_bottom_temp_distributions_levels_05-15-2023.csv", show_col_types = FALSE))
+bt_temp_project<-bt_temp_project %>% 
+  dplyr::mutate(lower = average_temp-1.96*sd_temp,
+                upper = average_temp+1.96*sd_temp) %>% 
+  dplyr::group_by(decade) %>% 
+  dplyr::mutate(mean_tmp=mean(average_temp))
+
+ggplot(bt_temp_project, aes(month, average_temp)) + geom_point() +  
+geom_errorbar(aes(ymin = lower, ymax = upper))+
+  facet_wrap(~decade, nrow = 1) + scale_x_continuous(breaks=seq(1,12,1)) +
+  theme(axis.text.x = element_text(size=7)) +
+  geom_hline(data=bt_temp_project, aes(yintercept=mean_tmp) ,color="red")
+```
+
 ### Baseline (2020) fishery statistics
 Index "_i" indicates per choice occasion variable 
 
