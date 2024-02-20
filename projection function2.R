@@ -7,7 +7,7 @@ p_star_hadd<-p_star_hadd_variable
 
 #profvis::profvis({
 
-catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip.csv")),  show_col_types = FALSE) 
+catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip 2_12.csv")),  show_col_types = FALSE) 
 
 predictions_d<-list()
 

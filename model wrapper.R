@@ -548,6 +548,114 @@ source("projection function2.R")
 #save the data 
 write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, ".xlsx")) 
 
+##################
+
+
+##################
+directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0)
+
+
+#choose which copula data to use
+
+#cop_name = _gumbel, _frank, _clayton, _plackett
+cop_name<-"_plackett"
+
+#independat or correlations = corr or ind
+ind_or_corr<-"ind"
+
+# Start the clock!
+ptm <- proc.time()
+
+source("projection function2.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+##################
+
+
+
+##################
+directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0)
+
+
+#choose which copula data to use
+
+#cop_name = _gumbel, _frank, _clayton, _plackett
+cop_name<-"_plackett"
+
+#independat or correlations = corr or ind
+ind_or_corr<-"corr"
+
+# Start the clock!
+ptm <- proc.time()
+
+source("projection function2.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+##################
+
+
+
+##################
+directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0)
+
+
+#choose which copula data to use
+
+#cop_name = _gumbel, _frank, _clayton, _plackett, _gaussian
+cop_name<-"_gaussian"
+
+#independat or correlations = corr or ind
+ind_or_corr<-"ind"
+
+# Start the clock!
+ptm <- proc.time()
+
+source("projection function2.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+##################
+
+
+
+##################
+directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0)
+
+
+#choose which copula data to use
+
+#cop_name = _gumbel, _frank, _clayton, _plackett, _gaussian
+cop_name<-"_gaussian"
+
+#independat or correlations = corr or ind
+ind_or_corr<-"corr"
+
+# Start the clock!
+ptm <- proc.time()
+
+source("projection function2.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+##################
 
 # Stop the clock
 proc.time() - ptm
@@ -997,5 +1105,143 @@ write_xlsx(predictions_all3,paste0("predictions_", cop_name, "_", ind_or_corr, "
 
 
 
+
+######################
+######Now run the simulation and close cod entirely. Do this for the Clayton datasets 
+#Clayton corr
+
+# Start the clock!
+ptm <- proc.time()
+
+predictions_all2<-list()
+
+  ##################
+  directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+  directed_trips<-directed_trips %>% 
+    dplyr::mutate(dtrip=round(dtrip)) %>% 
+    dplyr::filter(dtrip!=0) %>% 
+    dplyr::mutate(cod_bag=0, cod_min=100)
+  
+  
+  
+  #choose which copula data to use
+  
+  #cop_name = _gumbel, _frank, clayton
+  cop_name<-"_clayton"
+  
+  #independat or correlations = corr or ind
+  ind_or_corr<-"corr"
+  
+  
+  source("projection function2.R")
+  
+  predictions_all<- predictions_all %>% 
+    dplyr::mutate(closure_month=99)
+  
+# Stop the clock
+proc.time() - ptm
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, "_cod_fully_closed.xlsx")) 
+
+
+
+#Clayton independent
+
+# Start the clock!
+ptm <- proc.time()
+
+predictions_all2<-list()
+
+##################
+directed_trips<-data.frame(read_csv("directed trips and regulations 2020.csv", show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0) %>% 
+  dplyr::mutate(cod_bag=0, cod_min=100)
+
+
+
+#choose which copula data to use
+
+#cop_name = _gumbel, _frank, clayton
+cop_name<-"_clayton"
+
+#independat or correlations = corr or ind
+ind_or_corr<-"ind"
+
+
+source("projection function2.R")
+
+predictions_all<- predictions_all %>% 
+  dplyr::mutate(closure_month=99)
+
+
+# Stop the clock
+proc.time() - ptm
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_", cop_name, "_", ind_or_corr, "_cod_fully_closed.xlsx")) 
+
+######################
+
+
+
+
+
 ##Analyze data 
 
+### OLS meta-analaysis of simulation results
+# ```{r,results='asis'}
+# predictions_data1<- read_excel("predictions__frank_corr.xlsx") 
+# predictions_data1 <-predictions_data1 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data2<- read_excel("predictions__clayton_corr.xlsx") 
+# predictions_data2 <-predictions_data2 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data3<- read_excel("predictions__gumbel_corr.xlsx") 
+# predictions_data3 <-predictions_data3 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data4<- read_excel("predictions__plackett_corr.xlsx") 
+# predictions_data4 <-predictions_data4 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data5<- read_excel("predictions__gaussian_corr.xlsx") 
+# predictions_data5 <-predictions_data5 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data6<- read_excel("predictions__frank_ind.xlsx") 
+# predictions_data6 <-predictions_data6 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data7<- read_excel("predictions__clayton_ind.xlsx") 
+# predictions_data7 <-predictions_data7 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data8<- read_excel("predictions__gumbel_ind.xlsx") 
+# predictions_data8 <-predictions_data8 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data9<- read_excel("predictions__plackett_ind.xlsx") 
+# predictions_data9 <-predictions_data9 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# predictions_data10<- read_excel("predictions__gaussian_ind.xlsx") 
+# predictions_data10 <-predictions_data10 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) 
+# 
+# 
+# predictions_data11<-rbind(predictions_data1, predictions_data2, predictions_data3, predictions_data4, predictions_data5,predictions_data6, predictions_data7, predictions_data8, predictions_data9, predictions_data10 )
+# 
+# predictions_data11<-predictions_data11 %>% 
+#   dplyr::mutate(copula=as.factor(copula), 
+#                 corr_type=as.factor(corr_type))
+# 
+# fit <- lm(cv_sum ~  factor(month)+ factor(decade)+ k_tau_catch_est_mnth+ k_tau_keep_est_mnth +cod_keep_sum + hadd_keep_sum +cod_rel_sum +hadd_rel_sum +factor(corr_type)+ factor(copula), data=predictions_data11)
+# 
+# library(xtable)
+# print(xtable(summary(fit)),type='html')
+# ```
