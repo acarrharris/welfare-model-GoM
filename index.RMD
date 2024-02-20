@@ -257,9 +257,6 @@ cod_closure1 <- cod_closure %>%
 print.data.frame(cod_closure1, row.names = FALSE)
 ```
 
-<div style="margin-bottom:50px;">
-</div>
-
 ### Annual fishery outcomes under climate-induced changes in catch-per-trip {.tabset}
 Each tab contains projected fishery outcomes based on input data from alternative copula models. 
 
@@ -2730,7 +2727,6 @@ plot2
 ```
 
 ### {-}
-
 ### MC simulation #2a - annual fishery outcomes with alternative cod open seasons {.tabset}
 In these simulations, I vary the cod open season across different months of the year. 
 
