@@ -28,7 +28,7 @@ conflict_prefer("rename", "dplyr")
 conflict_prefer("summarize", "dplyr")
 conflict_prefer("summarise", "dplyr")
 conflict_prefer("count", "dplyr")
-options(scipen = 100, digits = 5)
+options(scipen = 10000, digits = 10)
 
 
 
