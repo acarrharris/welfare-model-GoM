@@ -33,20 +33,18 @@ conflict_prefer("count", "dplyr")
 This file is an exploratory analysis of the effect of climate-induced shifts in angler catch-per-trip of Gulf of Maine cod and haddock. Results are based on 100 iterations of the recreation demand model. The RDM is calibrated to 2020 fishery conditions.   
 
 ### Decadal bottom trends
-Mean monthly bottom temps by decade, red line indicates decadal average. Bars represent mean temp +/- 1.96*standard dev.   
-```{r echo = FALSE}
+Mean monthly bottom temps by decade, red line indicates decadal average. Bars represent mean monthly temp +/- 1.96*standard dev.   
+```{r echo = FALSE, fig.width=8, fig.height=6}
+#projection data
 bt_temp_project <- data.frame(read_csv("decadal_bottom_temp_distributions_levels_05-15-2023.csv", show_col_types = FALSE))
-# bt_temp_project_check <- bt_temp_project %>% 
-#   dplyr::filter(decade<=3)
-# mean(bt_temp_project_check$average_temp)
 
 bt_temp_project<-bt_temp_project %>%
   dplyr::mutate(lower = average_temp-1.96*sd_temp,
                 upper = average_temp+1.96*sd_temp) %>%
   dplyr::group_by(decade) %>%
-  dplyr::mutate(mean_tmp=mean(average_temp)) %>%
+  dplyr::mutate(mean_decadal_tmp=mean(average_temp)) %>%
   dplyr::rename(decade2= decade) %>%
-  dplyr::mutate(decade = case_when(decade2 ==1~'2021-2030',
+  dplyr::mutate(decade = case_when(decade2==1~'2021-2030',
                                    decade2==2~'2031-2040',
                                    decade2==3~'2041-2050',
                                    decade2==4~'2051-2060',
@@ -54,27 +52,19 @@ bt_temp_project<-bt_temp_project %>%
                                    decade2==6~'2071-2080',
                                    decade2==7~'2081-2090',
                                    decade2==8~'2091-3000')) %>%
-  dplyr::ungroup()
-# 
-# bt_temp_project_check<-bt_temp_project %>% 
-#   dplyr::filter(decade2<=3)
-# 
-# mean(bt_temp_project_check$average_temp)
-
-GOM_mean_bt_temps<-read_excel("\\\\net.nefsc.noaa.gov/aharris/DisMap data/mean_bottom_temps_GOM_cod_hadd.xlsx")
-# GOM_mean_bt_temps<-read_excel("mean_bottom_temps_GOM_cod_hadd_check.xlsx")
-
-# GOM_mean_bt_temps_check<-GOM_mean_bt_temps %>% 
-#   dplyr::filter(year>1990 & year<=2020)
-# mean(GOM_mean_bt_temps_check$bt_tmp, na.rm=TRUE)
+  dplyr::ungroup() %>% 
+  dplyr::select(-n, -decade2) %>% 
+  dplyr::rename(mean_temp=average_temp)%>% 
+  dplyr::mutate(month=as.numeric(month))
 
 
+#historical data
 
-# GOM_mean_bt_temps<-read_excel("\\\\net.nefsc.noaa.gov/aharris/DisMap data/bottom_temps_GOM_cod_hadd.xlsx")
+GOM_mean_bt_temps<-read_excel("U:/mean_bottom_temps_GOM_cod_hadd.xlsx")
+
 GOM_mean_bt_temps_means<-GOM_mean_bt_temps %>%
   dplyr::mutate(year=as.numeric(year), 
                 month=as.numeric(month)) %>% 
- # dplyr::filter(year>1990 & year<=2020)
   dplyr::mutate(decade = case_when(year>=2011 & year<=2020 ~ '2011-2020',
                                    year>=2001 & year<=2010 ~ '2001-2010',
                                    year>=1991 & year<=2000 ~ '1991-2000',
@@ -86,35 +76,50 @@ GOM_mean_bt_temps_means<-GOM_mean_bt_temps %>%
                    sd_temp=sd(bt_tmp), .groups = 'drop') %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(decade) %>% 
-  dplyr::mutate(mean_annual_tmp=mean(mean_temp)) %>% 
+  dplyr::mutate(mean_decadal_tmp=mean(mean_temp)) %>% 
   dplyr::filter(!is.na(decade)) %>% 
   dplyr::mutate(lower = mean_temp-1.96*sd_temp,
-                upper = mean_temp+1.96*sd_temp) 
-  
+                upper = mean_temp+1.96*sd_temp) %>% 
+  dplyr::mutate(month=as.numeric(month))
+
+historical_and_projections<- rbind(GOM_mean_bt_temps_means, bt_temp_project)
     
 #GOM_mean_bt_temps_means_check<-GOM_mean_bt_temps_means %>% 
 #  dplyr::filter(year>1990 & year<=2020)
 
-plot1<-  ggplot(GOM_mean_bt_temps_means, aes(month, mean_temp)) + geom_point() + 
+# plot1<-  
+  
+ggplot(historical_and_projections, aes(month, mean_temp)) + geom_point() + 
   geom_errorbar(aes(ymin = lower, ymax = upper))+
-  facet_wrap(~decade, nrow = 1) + scale_x_continuous(breaks=seq(1,12,1)) +
+  facet_wrap(~decade, nrow = 1) + #scale_x_continuous(breaks=seq(1,12,1)) +
   scale_y_continuous(limits = c(3.5,12.5)) +
   theme(axis.text.x = element_blank(),  strip.text = element_text(size = 5, margin = margin()), 
          axis.ticks.x=element_blank()) +
-  geom_hline(data=GOM_mean_bt_temps_means, aes(yintercept=mean_annual_tmp) ,color="red")+
-  labs( x=NULL)
+  geom_hline(data=historical_and_projections, aes(yintercept=mean_decadal_tmp) ,color="red")+
+  labs( x=NULL, y = "Sea bottom temperature (°C)") +ggtitle("Historical and projected average monthly sea bottom temperatures in the Gulf of Maine")
 
+# plot1
 
-plot2<-ggplot(bt_temp_project, aes(month, average_temp)) + geom_point() +  
-geom_errorbar(aes(ymin = lower, ymax = upper))+
-  facet_wrap(~decade, nrow = 1) + scale_x_continuous(breaks=seq(1,12,1)) +
-  scale_y_continuous(limits = c(3.5,12.5)) +
-  theme(axis.text.x = element_blank(), strip.text = element_text(size = 5, margin = margin()),
-        axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.ticks.x=element_blank()) +
-  geom_hline(data=bt_temp_project, aes(yintercept=mean_tmp) ,color="red") +
-  labs(y = NULL, x=NULL)
-
-grid.arrange(plot1, plot2, ncol=2, top = "Historical and projected average monthly sea bottom temperatures GoM")
+# plot1<-  ggplot(GOM_mean_bt_temps_means, aes(month, mean_temp)) + geom_point() + 
+#   geom_errorbar(aes(ymin = lower, ymax = upper))+
+#   facet_wrap(~decade, nrow = 1) + #scale_x_continuous(breaks=seq(1,12,1)) +
+#   scale_y_continuous(limits = c(3.5,12.5)) +
+#   theme(axis.text.x = element_blank(),  strip.text = element_text(size = 5, margin = margin()), 
+#          axis.ticks.x=element_blank()) +
+#   geom_hline(data=GOM_mean_bt_temps_means, aes(yintercept=mean_annual_tmp) ,color="red")+
+#   labs( x=NULL)
+# 
+# 
+# plot2<-ggplot(bt_temp_project, aes(month, average_temp)) + geom_point() +  
+# geom_errorbar(aes(ymin = lower, ymax = upper))+
+#   facet_wrap(~decade, nrow = 1) + #scale_x_continuous(breaks=seq(1,12,1)) +
+#   scale_y_continuous(limits = c(3.5,12.5)) +
+#   theme(axis.text.x = element_blank(), strip.text = element_text(size = 5, margin = margin()),
+#         axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.ticks.x=element_blank()) +
+#   geom_hline(data=bt_temp_project, aes(yintercept=mean_tmp) ,color="red") +
+#   labs(y = NULL, x=NULL)
+# 
+# grid.arrange(plot1, plot2, ncol=2, top = "Historical and projected average monthly sea bottom temperatures GoM")
 
 # plot2<-ggplot(bt_temp_project, aes(month, average_temp)) + geom_point() +  
 # geom_errorbar(aes(ymin = lower, ymax = upper))+

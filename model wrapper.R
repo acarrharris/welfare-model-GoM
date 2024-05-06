@@ -384,6 +384,10 @@ ggplot(trips, aes(x=scenario, y=trips)) +
 #################################
 }
 
+
+
+
+
 ########################################
 ####Decadal projections
 # Start the clock!
@@ -666,288 +670,288 @@ proc.time() - ptm
 
 ### compile results from decadal projections
 {
-calib_data <- readRDS("calibration_data_all.rds")
-calib_data<-calib_data %>% 
-  dplyr::group_by(draw) %>% 
-  dplyr::summarise(estimated_trips=sum(estimated_trips),
-                   tot_cod_catch= sum(tot_cod_catch), 
-                   tot_keep_cod = sum(tot_keep_cod), 
-                   tot_rel_cod = sum(tot_rel_cod), 
-                   
-                   tot_hadd_catch = sum(tot_hadd_catch), 
-                   tot_keep_hadd = sum(tot_keep_hadd),
-                   tot_rel_hadd = sum(tot_rel_hadd),
-                   
-                   n_choice_occasions = sum(n_choice_occasions)) %>% 
-  dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
-                hadd_keep_i=tot_keep_hadd/n_choice_occasions,
-                cod_keep_trip=tot_keep_cod/estimated_trips, 
-                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
-                cod_catch_i=tot_cod_catch/n_choice_occasions, 
-                hadd_catch_i=tot_hadd_catch/n_choice_occasions, 
-                cod_catch_trip=tot_cod_catch/estimated_trips, 
-                hadd_catch_trip=tot_hadd_catch/estimated_trips)
-stats<-psych::describe(calib_data )
-
-
-#Get the required statistics and convert the data into dataframe
-summ_data <- data.frame(t(sapply(calib_data, function(x) 
-  list(mean = mean(x,na.rm=TRUE), sd = sd(x,na.rm=TRUE)))))
-#Change rownames to new column
-summ_data$variable <- rownames(summ_data)
-#Remove rownames
-rownames(summ_data) <- NULL
-#Make variable column as 1st column
-cbind(summ_data[ncol(summ_data)], summ_data[-ncol(summ_data)])
-
-
-descr(calib_data, stats = c('mean', 'sd'))
-sapply(calib_data, c('mean', 'sd'), na.rm=TRUE)
-pastecs::stat.desc(calib_data)
-predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
-
-predictions_data<-predictions_data %>% 
-  dplyr::mutate(decade=as.character(decade)) %>% 
-  dplyr::group_by(decade, draw) %>% 
-  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
-                   hadd_keep_sum=sum(hadd_keep_sum),
-                   cod_catch_sum=sum(cod_catch_sum), 
-                   hadd_catch_sum=sum(hadd_catch_sum),
-                   cv_sum=sum(cv_sum),
-                   ntrip=sum(ntrips_alt_sum),
-                   n_choices=sum(n_choice_occasions_sum), .groups = 'drop') %>% 
-  dplyr::ungroup() %>% 
-  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
-                hadd_keep_i=hadd_keep_sum/n_choices,
-                cod_catch_i=cod_catch_sum/n_choices,
-                hadd_catch_i=hadd_catch_sum/n_choices,
-                cv_i=cv_sum/n_choices)
-
-
-plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="cod keep per choice occasion", label=comma)
-
-plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
-
-grid.arrange(plot1, plot2, ncol=2)
-
-
-predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
-
-predictions_data<-predictions_data %>% 
-  dplyr::mutate(decade=as.character(decade)) %>% 
-  dplyr::group_by(decade, draw) %>% 
-  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
-                   hadd_keep_sum=sum(hadd_keep_sum),
-                   cod_catch_sum=sum(cod_catch_sum), 
-                   hadd_catch_sum=sum(hadd_catch_sum),
-                   cv_sum=sum(cv_sum),
-                   ntrip=sum(ntrips_alt_sum),
-                   n_choices=sum(n_choice_occasions_sum),
-                   k_tau_keep=mean(k_tau_keep_est), 
-                   k_tau_catch=mean(k_tau_catch_est),
-                   .groups = 'drop') %>% 
-  dplyr::ungroup() %>% 
-  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
-                hadd_keep_i=hadd_keep_sum/n_choices,
-                cod_catch_i=cod_catch_sum/n_choices,
-                hadd_catch_i=hadd_catch_sum/n_choices,
-                cv_i=cv_sum/n_choices)
-
-predictions_data1<- read_excel("predictions__frank_corr.xlsx") 
-predictions_data1 <-predictions_data1 %>% 
-  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
-  filter(decade==1)
-
-predictions_data2<- read_excel("predictions__clayton_corr.xlsx") 
-predictions_data2 <-predictions_data2 %>% 
-  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
-  filter(decade==1)
-
-predictions_data3<- read_excel("predictions__gumbel_corr.xlsx") 
-predictions_data3 <-predictions_data3 %>% 
-  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
-  filter(decade==1)
-
-predictions_data4<-rbind(predictions_data1, predictions_data2, predictions_data3)
-predictions_data5<- predictions_data4  %>%
-  dplyr::group_by(copula, draw) %>% 
-  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
-                   hadd_keep_sum=sum(hadd_keep_sum),
-                   cod_catch_sum=sum(cod_catch_sum), 
-                   hadd_catch_sum=sum(hadd_catch_sum),
-                   cv_sum=sum(cv_sum),
-                   ntrip=sum(ntrips_alt_sum),
-                   n_choices=sum(n_choice_occasions_sum),
-                   k_tau_keep=mean(k_tau_keep_est), 
-                   k_tau_catch=mean(k_tau_catch_est),
-                   .groups = 'drop') %>% 
-  dplyr::ungroup() %>% 
-  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
-                hadd_keep_i=hadd_keep_sum/n_choices,
-                cod_catch_i=cod_catch_sum/n_choices,
-                hadd_catch_i=hadd_catch_sum/n_choices,
-                cv_i=cv_sum/n_choices)
-
-predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
-
-predictions_data_month_d1<-predictions_data %>% 
-  dplyr::mutate(decade=as.character(decade)) %>% 
-  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choice_occasions_sum,
-                hadd_keep_i=hadd_keep_sum/n_choice_occasions_sum,
-                cod_catch_i=cod_catch_sum/n_choice_occasions_sum,
-                hadd_catch_i=hadd_catch_sum/n_choice_occasions_sum,
-                cv_i=cv_sum/n_choice_occasions_sum) %>% 
-  # dplyr::filter(decade %in% c("1", "3", "5", "7")) %>% 
-  dplyr::arrange(month, decade, draw)
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrips_alt_sum)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Number of trips", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cv_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="CV per choice occasion", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Cod keep per choice occasion", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Haddock keep per choice occasion", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_catch_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Cod catch per choice occasion", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_catch_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Haddock catch per choice occasion", label=comma) +
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1[], aes(x=decade, y=k_tau_keep_est_mnth)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Correlation in keep per choice occasion", label=comma) + geom_hline(yintercept=0, linetype="dashed", color = "red")+
-  facet_wrap(~month, nrow = 2)
-plot2
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=k_tau_catch_est_mnth)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Correlation in catch per choice occasion", label=comma) + geom_hline(yintercept=0, linetype="dashed", color = "red")+
-  facet_wrap(~month, nrow = 2)
-plot2
-
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrips_alt_sum)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Number of trips", label=comma) +
-  facet_wrap(~month, nrow = 1)
-plot2
-
-
-
-
-plot1<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="cod keep per choice occasion", label=comma)
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
-
-plot3<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_catch_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="cod catch per choice occasion", label=comma)
-
-plot4<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_catch_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="haddock catch per choice occasion", label=comma) 
-
-grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
-
-
-plot1<-ggplot(predictions_data_month_d1, aes(x=decade, y=n_choices)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Number of choice occasions", label=comma)
-
-
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrip)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Number of trips", label=comma) +
-  facet_wrap(~month, nrow = 1)
-plot2
-
-
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrip)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="Number of trips", label=comma) 
-
-plot2
-grid.arrange(plot1, plot2, ncol=2)
-
-
-
-
-plot1<-ggplot(predictions_data_month_d1, aes(x=month, y=cod_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="cod keep per choice occasion", label=comma)
-
-plot2<-ggplot(predictions_data_month_d1, aes(x=month, y=hadd_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
-
-grid.arrange(plot1, plot2, ncol=2)
-
-
-
-predictions_data_d1<-predictions_data_month %>% 
-  dplyr::filter(decade==1) %>% 
-  dplyr::mutate(decade=as.character(decade)) %>% 
-  dplyr::group_by(decade, draw, month) %>% 
-  dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
-                   hadd_keep_sum=sum(hadd_keep_sum),
-                   cod_catch_sum=sum(cod_catch_sum), 
-                   hadd_catch_sum=sum(hadd_catch_sum),
-                   cv_sum=sum(cv_sum),
-                   ntrip=sum(ntrips_alt_sum),
-                   n_choices=sum(n_choice_occasions_sum), .groups = 'drop') %>% 
-  dplyr::ungroup() %>% 
-  dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
-                hadd_keep_i=hadd_keep_sum/n_choices,
-                cod_catch_i=cod_catch_sum/n_choices,
-                hadd_catch_i=hadd_catch_sum/n_choices,
-                cv_i=cv_sum/n_choices, 
-                month=as.factor(month)) 
-
-describeBy(predictions_data_d1[ , c('cod_keep_i', 'hadd_keep_i')], group=predictions_data_d1$month, fast=TRUE)
-
-plot1<-ggplot(predictions_data_d1, aes(x=month, y=cod_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="cod keep per choice occasion", label=comma)
-
-plot2<-ggplot(predictions_data_d1, aes(x=month, y=hadd_keep_i)) + 
-  geom_violin() + geom_boxplot(width=0.1)+
-  scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
-
-grid.arrange(plot1, plot2, ncol=2)
+# calib_data <- readRDS("calibration_data_all.rds")
+# calib_data<-calib_data %>% 
+#   dplyr::group_by(draw) %>% 
+#   dplyr::summarise(estimated_trips=sum(estimated_trips),
+#                    tot_cod_catch= sum(tot_cod_catch), 
+#                    tot_keep_cod = sum(tot_keep_cod), 
+#                    tot_rel_cod = sum(tot_rel_cod), 
+#                    
+#                    tot_hadd_catch = sum(tot_hadd_catch), 
+#                    tot_keep_hadd = sum(tot_keep_hadd),
+#                    tot_rel_hadd = sum(tot_rel_hadd),
+#                    
+#                    n_choice_occasions = sum(n_choice_occasions)) %>% 
+#   dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
+#                 hadd_keep_i=tot_keep_hadd/n_choice_occasions,
+#                 cod_keep_trip=tot_keep_cod/estimated_trips, 
+#                 hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+#                 cod_catch_i=tot_cod_catch/n_choice_occasions, 
+#                 hadd_catch_i=tot_hadd_catch/n_choice_occasions, 
+#                 cod_catch_trip=tot_cod_catch/estimated_trips, 
+#                 hadd_catch_trip=tot_hadd_catch/estimated_trips)
+# stats<-psych::describe(calib_data )
+# 
+# 
+# #Get the required statistics and convert the data into dataframe
+# summ_data <- data.frame(t(sapply(calib_data, function(x) 
+#   list(mean = mean(x,na.rm=TRUE), sd = sd(x,na.rm=TRUE)))))
+# #Change rownames to new column
+# summ_data$variable <- rownames(summ_data)
+# #Remove rownames
+# rownames(summ_data) <- NULL
+# #Make variable column as 1st column
+# cbind(summ_data[ncol(summ_data)], summ_data[-ncol(summ_data)])
+# 
+# 
+# descr(calib_data, stats = c('mean', 'sd'))
+# sapply(calib_data, c('mean', 'sd'), na.rm=TRUE)
+# pastecs::stat.desc(calib_data)
+# predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
+# 
+# predictions_data<-predictions_data %>% 
+#   dplyr::mutate(decade=as.character(decade)) %>% 
+#   dplyr::group_by(decade, draw) %>% 
+#   dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+#                    hadd_keep_sum=sum(hadd_keep_sum),
+#                    cod_catch_sum=sum(cod_catch_sum), 
+#                    hadd_catch_sum=sum(hadd_catch_sum),
+#                    cv_sum=sum(cv_sum),
+#                    ntrip=sum(ntrips_alt_sum),
+#                    n_choices=sum(n_choice_occasions_sum), .groups = 'drop') %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+#                 hadd_keep_i=hadd_keep_sum/n_choices,
+#                 cod_catch_i=cod_catch_sum/n_choices,
+#                 hadd_catch_i=hadd_catch_sum/n_choices,
+#                 cv_i=cv_sum/n_choices)
+# 
+# 
+# plot1<-ggplot(predictions_data, aes(x=decade, y=cod_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="cod keep per choice occasion", label=comma)
+# 
+# plot2<-ggplot(predictions_data, aes(x=decade, y=hadd_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+# 
+# grid.arrange(plot1, plot2, ncol=2)
+# 
+# 
+# predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
+# 
+# predictions_data<-predictions_data %>% 
+#   dplyr::mutate(decade=as.character(decade)) %>% 
+#   dplyr::group_by(decade, draw) %>% 
+#   dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+#                    hadd_keep_sum=sum(hadd_keep_sum),
+#                    cod_catch_sum=sum(cod_catch_sum), 
+#                    hadd_catch_sum=sum(hadd_catch_sum),
+#                    cv_sum=sum(cv_sum),
+#                    ntrip=sum(ntrips_alt_sum),
+#                    n_choices=sum(n_choice_occasions_sum),
+#                    k_tau_keep=mean(k_tau_keep_est), 
+#                    k_tau_catch=mean(k_tau_catch_est),
+#                    .groups = 'drop') %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+#                 hadd_keep_i=hadd_keep_sum/n_choices,
+#                 cod_catch_i=cod_catch_sum/n_choices,
+#                 hadd_catch_i=hadd_catch_sum/n_choices,
+#                 cv_i=cv_sum/n_choices)
+# 
+# predictions_data1<- read_excel("predictions__frank_corr.xlsx") 
+# predictions_data1 <-predictions_data1 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+#   filter(decade==1)
+# 
+# predictions_data2<- read_excel("predictions__clayton_corr.xlsx") 
+# predictions_data2 <-predictions_data2 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+#   filter(decade==1)
+# 
+# predictions_data3<- read_excel("predictions__gumbel_corr.xlsx") 
+# predictions_data3 <-predictions_data3 %>% 
+#   mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+#   filter(decade==1)
+# 
+# predictions_data4<-rbind(predictions_data1, predictions_data2, predictions_data3)
+# predictions_data5<- predictions_data4  %>%
+#   dplyr::group_by(copula, draw) %>% 
+#   dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+#                    hadd_keep_sum=sum(hadd_keep_sum),
+#                    cod_catch_sum=sum(cod_catch_sum), 
+#                    hadd_catch_sum=sum(hadd_catch_sum),
+#                    cv_sum=sum(cv_sum),
+#                    ntrip=sum(ntrips_alt_sum),
+#                    n_choices=sum(n_choice_occasions_sum),
+#                    k_tau_keep=mean(k_tau_keep_est), 
+#                    k_tau_catch=mean(k_tau_catch_est),
+#                    .groups = 'drop') %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+#                 hadd_keep_i=hadd_keep_sum/n_choices,
+#                 cod_catch_i=cod_catch_sum/n_choices,
+#                 hadd_catch_i=hadd_catch_sum/n_choices,
+#                 cv_i=cv_sum/n_choices)
+# 
+# predictions_data<- read_excel("predictions__clayton_ind.xlsx") 
+# 
+# predictions_data_month_d1<-predictions_data %>% 
+#   dplyr::mutate(decade=as.character(decade)) %>% 
+#   dplyr::mutate(cod_keep_i=cod_keep_sum/n_choice_occasions_sum,
+#                 hadd_keep_i=hadd_keep_sum/n_choice_occasions_sum,
+#                 cod_catch_i=cod_catch_sum/n_choice_occasions_sum,
+#                 hadd_catch_i=hadd_catch_sum/n_choice_occasions_sum,
+#                 cv_i=cv_sum/n_choice_occasions_sum) %>% 
+#   # dplyr::filter(decade %in% c("1", "3", "5", "7")) %>% 
+#   dplyr::arrange(month, decade, draw)
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrips_alt_sum)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Number of trips", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cv_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="CV per choice occasion", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Cod keep per choice occasion", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Haddock keep per choice occasion", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_catch_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Cod catch per choice occasion", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_catch_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Haddock catch per choice occasion", label=comma) +
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1[], aes(x=decade, y=k_tau_keep_est_mnth)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Correlation in keep per choice occasion", label=comma) + geom_hline(yintercept=0, linetype="dashed", color = "red")+
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=k_tau_catch_est_mnth)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Correlation in catch per choice occasion", label=comma) + geom_hline(yintercept=0, linetype="dashed", color = "red")+
+#   facet_wrap(~month, nrow = 2)
+# plot2
+# 
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrips_alt_sum)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Number of trips", label=comma) +
+#   facet_wrap(~month, nrow = 1)
+# plot2
+# 
+# 
+# 
+# 
+# plot1<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="cod keep per choice occasion", label=comma)
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+# 
+# plot3<-ggplot(predictions_data_month_d1, aes(x=decade, y=cod_catch_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="cod catch per choice occasion", label=comma)
+# 
+# plot4<-ggplot(predictions_data_month_d1, aes(x=decade, y=hadd_catch_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="haddock catch per choice occasion", label=comma) 
+# 
+# grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+# 
+# 
+# plot1<-ggplot(predictions_data_month_d1, aes(x=decade, y=n_choices)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Number of choice occasions", label=comma)
+# 
+# 
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrip)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Number of trips", label=comma) +
+#   facet_wrap(~month, nrow = 1)
+# plot2
+# 
+# 
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=decade, y=ntrip)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="Number of trips", label=comma) 
+# 
+# plot2
+# grid.arrange(plot1, plot2, ncol=2)
+# 
+# 
+# 
+# 
+# plot1<-ggplot(predictions_data_month_d1, aes(x=month, y=cod_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="cod keep per choice occasion", label=comma)
+# 
+# plot2<-ggplot(predictions_data_month_d1, aes(x=month, y=hadd_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+# 
+# grid.arrange(plot1, plot2, ncol=2)
+# 
+# 
+# 
+# predictions_data_d1<-predictions_data_month %>% 
+#   dplyr::filter(decade==1) %>% 
+#   dplyr::mutate(decade=as.character(decade)) %>% 
+#   dplyr::group_by(decade, draw, month) %>% 
+#   dplyr::summarise(cod_keep_sum=sum(cod_keep_sum), 
+#                    hadd_keep_sum=sum(hadd_keep_sum),
+#                    cod_catch_sum=sum(cod_catch_sum), 
+#                    hadd_catch_sum=sum(hadd_catch_sum),
+#                    cv_sum=sum(cv_sum),
+#                    ntrip=sum(ntrips_alt_sum),
+#                    n_choices=sum(n_choice_occasions_sum), .groups = 'drop') %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::mutate(cod_keep_i=cod_keep_sum/n_choices,
+#                 hadd_keep_i=hadd_keep_sum/n_choices,
+#                 cod_catch_i=cod_catch_sum/n_choices,
+#                 hadd_catch_i=hadd_catch_sum/n_choices,
+#                 cv_i=cv_sum/n_choices, 
+#                 month=as.factor(month)) 
+# 
+# describeBy(predictions_data_d1[ , c('cod_keep_i', 'hadd_keep_i')], group=predictions_data_d1$month, fast=TRUE)
+# 
+# plot1<-ggplot(predictions_data_d1, aes(x=month, y=cod_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="cod keep per choice occasion", label=comma)
+# 
+# plot2<-ggplot(predictions_data_d1, aes(x=month, y=hadd_keep_i)) + 
+#   geom_violin() + geom_boxplot(width=0.1)+
+#   scale_y_continuous(name="haddock keep per choice occasion", label=comma) 
+# 
+# grid.arrange(plot1, plot2, ncol=2)
 
 }
 
