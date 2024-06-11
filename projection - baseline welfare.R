@@ -1,6 +1,11 @@
 
 
 
+
+p_star_cod <- p_star_cod_variable
+p_star_hadd<-p_star_hadd_variable
+
+
 # predict_rec_catch <- function(calibration_data_table,
 #                               directed_trips_table,
 #                               cod_size_data_read,
@@ -23,6 +28,7 @@
 
 #x<-1
 
+set.seed(130+x)
 
 trip_level_output3=list()
 trip_level_output1=list()
@@ -53,6 +59,8 @@ directed_trips_p <- directed_trips %>% #subset(directed_trips, period == p)
     n_trips = floor(dtrip),
     n_draws = n_drawz) 
 
+directed_trips_p_check<-directed_trips_p %>% distinct(period2)
+
 
 period_vec <- directed_trips_p %>% 
   dplyr::select(period2, n_draws, month) %>% 
@@ -65,16 +73,17 @@ regs <- directed_trips_p %>%
 
 
 catch_data <- catch_data_all %>%
-  group_by(period2) %>%
-  slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
-  mutate(
+  dplyr::group_by(period2) %>%
+  dplyr::slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
+  dplyr::mutate(
     catch_draw = rep(1:n_catch_draws, length.out = n_drawz * n_catch_draws),
     tripid = rep(1:n_drawz, each = n_catch_draws)
   ) %>%
-  rename(tot_cod_catch=tot_cat_cod, tot_hadd_catch=tot_cat_hadd) %>% 
-  ungroup
-
-
+  dplyr::rename(tot_cod_catch=tot_cat_cod, tot_hadd_catch=tot_cat_hadd) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::select(-year) %>% 
+  dplyr::right_join(directed_trips_p_check, by="period2")
+  
 
   cod_hadd_catch_data <- catch_data
     
@@ -103,7 +112,7 @@ catch_data <- catch_data_all %>%
 
     catch_data_cod <- catch_data %>%
       dplyr::left_join(regs, by = "period2") %>%
-      dplyr:: mutate(cod_bag=0) %>% 
+      dplyr:: mutate(cod_bag=0) %>% #Set bag limits to zero 
       dplyr::mutate(uniform=runif(nrow(catch_data))) %>%
       dplyr::mutate(posskeep = ifelse(uniform>=p_star_cod, 1,0)) %>%
       dplyr::group_by(tripid, period2, catch_draw)   %>%
@@ -140,7 +149,6 @@ catch_data <- catch_data_all %>%
       dplyr::select(-c("tot_cod_catch", "tot_hadd_catch"))
     
     
-    
     #######haddock
     
     if (hadd_catch_check!=0){
@@ -163,7 +171,7 @@ catch_data <- catch_data_all %>%
       
       hadd_catch_data <- hadd_catch_data %>%
         dplyr::left_join(regs, by = "period2")  %>%
-        dplyr:: mutate(hadd_bag=0) %>%        
+        dplyr:: mutate(hadd_bag=0) %>% #Set bag limits to zero        
         dplyr::mutate(uniform=runif(nrow(hadd_catch_data))) %>%
         dplyr::mutate(posskeep = ifelse(uniform>=p_star_hadd, 1,0)) %>%
         dplyr::group_by(tripid, period2, catch_draw)   %>%
@@ -213,6 +221,7 @@ catch_data <- catch_data_all %>%
       trip_data <- trip_data %>% 
         dplyr::left_join(trip_data_hadd, by = c("period2", "catch_draw", "tripid")) 
       
+      
       # %>%
       
     }
@@ -230,12 +239,16 @@ catch_data <- catch_data_all %>%
     # costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
     #   filter(catch_draw<=n_catch_draws) 
   
-    costs_new_all <- readRDS(paste0("cost_files/cost_files_all_draw_",x,".rds"))  %>% #tibble() %>% 
-      filter(catch_draw<=n_catch_draws) 
+    costs_new_all <- readRDS(paste0("calibration_data/cost_files_all_draw_2020_",x,".rds"))  %>% #tibble() %>% 
+      filter(catch_draw<=n_catch_draws)
+    
+    
 
     # merge the trip data (summer flounder catch + lengths) with the other species data (numbers kept and released))
     trip_data <- trip_data %>% 
       left_join(costs_new_all, by = c("period2","catch_draw","tripid")) 
+    
+    
     
     # %>%
     trip_data <-trip_data %>% 
@@ -245,7 +258,7 @@ catch_data <- catch_data_all %>%
     period_vec1 <- period_vec %>%
       group_by(period2) %>% mutate(tripid = row_number(period2))
     
-
+    
     #  utility (prediction year)
     trip_data <-trip_data %>%
       dplyr::mutate(
@@ -261,7 +274,7 @@ catch_data <- catch_data_all %>%
           beta_sqrt_hadd_release*sqrt(trip_data$tot_rel_hadd_base) + 
           beta_sqrt_cod_hadd_keep*(sqrt(trip_data$tot_keep_cod_base)*sqrt(trip_data$tot_keep_hadd_base)) +
           beta_cost*trip_data$cost) 
-    
+
     
     #These stats should be roughly the same under no chnage in fishery conditions
     

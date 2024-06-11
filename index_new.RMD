@@ -1,0 +1,851 @@
+
+
+---
+title: "GoM cod and haddock RDM"
+author: "Lou Carr-Harris"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: cerulean
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(comment = NA)
+cat('<pre>')
+pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape",
+                 "doBy","WriteXLS","Rcpp", "ggplot2","dplyr", "rlist","fitdistrplus",
+                 "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
+                 "logspline","readr","data.table","conflicted", "readxl", "writexl", "stringr",
+                 "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc", "sjPlot", "gridExtra", 
+                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "knitr", "hrbrthemes")
+install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
+lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("select", "dplyr")
+conflict_prefer("mutate", "dplyr")
+conflict_prefer("rename", "dplyr")
+conflict_prefer("summarize", "dplyr")
+conflict_prefer("summarise", "dplyr")
+conflict_prefer("count", "dplyr")
+```
+This file is an exploratory analysis of the effect of climate-induced shifts in angler catch-per-trip of Gulf of Maine cod and haddock. Results are based on 100 iterations of the recreation demand model. The RDM is calibrated to 2020 fishery conditions.   
+
+### Decadal bottom temp trends
+Mean monthly bottom temps by decade, red line indicates decadal average. Bars represent mean monthly temp +/- 1.96*standard dev.   
+```{r echo = FALSE, fig.width=8, fig.height=6}
+#projection data
+# bt_temp_project <- data.frame(read_csv("decadal_bottom_temp_distributions_levels_05-15-2023.csv", show_col_types = FALSE))
+bt_temp_project <- data.frame(read_csv("decadal_bottom_temp_distributions_levels_05-28-2024.csv", show_col_types = FALSE))
+
+bt_temp_project<-bt_temp_project %>%
+  dplyr::mutate(lower = average_temp-1.96*sd_temp,
+                upper = average_temp+1.96*sd_temp) %>%
+  dplyr::group_by(decade) %>%
+  dplyr::mutate(mean_decadal_tmp=mean(average_temp)) %>%
+  dplyr::rename(decade2= decade) %>%
+  dplyr::mutate(decade = case_when(decade2==1~'2021-2030',
+                                   decade2==2~'2031-2040',
+                                   decade2==3~'2041-2050',
+                                   decade2==4~'2051-2060',
+                                   decade2==5~'2061-2070',
+                                   decade2==6~'2071-2080',
+                                   decade2==7~'2081-2090',
+                                   decade2==8~'2091-3000')) %>%
+  dplyr::ungroup() %>% 
+  dplyr::select(-n, -decade2) %>% 
+  dplyr::rename(mean_temp=average_temp)%>% 
+  dplyr::mutate(month=as.numeric(month))
+
+
+#historical data
+
+GOM_mean_bt_temps<-read_excel("U:/mean_bottom_temps_GOM_cod_hadd.xlsx")
+
+GOM_mean_bt_temps_means<-GOM_mean_bt_temps %>%
+  dplyr::mutate(year=as.numeric(year), 
+                month=as.numeric(month)) %>% 
+  dplyr::mutate(decade = case_when(year>=2011 & year<=2020 ~ '2011-2020',
+                                   year>=2001 & year<=2010 ~ '2001-2010',
+                                   year>=1991 & year<=2000 ~ '1991-2000',
+                                   year>=1981 & year<=1990 ~ '1981-1990',
+                                   year>=1971 & year<=1980 ~ '1971-1980',
+                                   year>=1961 & year<=1970 ~ '1961-1970')) %>% 
+  dplyr::group_by(decade, month) %>% 
+  dplyr::summarize(mean_temp=mean(bt_tmp), 
+                   sd_temp=sd(bt_tmp), .groups = 'drop') %>% 
+  dplyr::ungroup() %>% 
+  dplyr::group_by(decade) %>% 
+  dplyr::mutate(mean_decadal_tmp=mean(mean_temp)) %>% 
+  dplyr::filter(!is.na(decade)) %>% 
+  dplyr::mutate(lower = mean_temp-1.96*sd_temp,
+                upper = mean_temp+1.96*sd_temp) %>% 
+  dplyr::mutate(month=as.numeric(month))
+
+historical_and_projections<- rbind(GOM_mean_bt_temps_means, bt_temp_project)
+    
+#GOM_mean_bt_temps_means_check<-GOM_mean_bt_temps_means %>% 
+#  dplyr::filter(year>1990 & year<=2020)
+
+# plot1<-  
+  
+ggplot(historical_and_projections, aes(month, mean_temp)) + geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper))+
+  facet_wrap(~decade, nrow = 1) + #scale_x_continuous(breaks=seq(1,12,1)) +
+  # scale_y_continuous(limits = c(3.5,12.5)) +
+  theme(axis.text.x = element_blank(),  strip.text = element_text(size = 7, margin = margin()), 
+         axis.ticks.x=element_blank()) +
+  geom_hline(data=historical_and_projections, aes(yintercept=mean_decadal_tmp) ,color="red")+
+  labs( x=NULL, y = "Sea bottom temperature (°C)") +ggtitle("Historical and projected average monthly sea bottom temperatures in the Gulf of Maine")
+```
+
+Projected differences in average monthly sea bottom temperatures relative to 2020. Bars represent lower and upper bounds of the projected average monthly temperatures. Red lines indicate differences between the decadal and 2020 annual average.
+```{r echo = FALSE, fig.width=8, fig.height=6}
+#projection data
+bt_temp_project <- data.frame(read_csv("decadal_bottom_temp_distributions_levels_05-28-2024.csv", show_col_types = FALSE))
+
+bt_temp_project<-bt_temp_project %>%
+  dplyr::mutate(lower = average_temp-1.96*sd_temp,
+                upper = average_temp+1.96*sd_temp) %>%
+  dplyr::group_by(decade) %>%
+  dplyr::mutate(mean_decadal_tmp=mean(average_temp)) %>%
+  dplyr::rename(decade2= decade) %>%
+  dplyr::mutate(decade = case_when(decade2==1~'2021-2030',
+                                   decade2==2~'2031-2040',
+                                   decade2==3~'2041-2050',
+                                   decade2==4~'2051-2060',
+                                   decade2==5~'2061-2070',
+                                   decade2==6~'2071-2080',
+                                   decade2==7~'2081-2090',
+                                   decade2==8~'2091-3000')) %>%
+  dplyr::ungroup() %>% 
+  dplyr::select(-n, -decade2) %>% 
+  dplyr::rename(mean_temp=average_temp)%>% 
+  dplyr::mutate(month=as.numeric(month))
+
+
+#historical data
+
+GOM_mean_bt_temps<-read_excel("U:/mean_bottom_temps_GOM_cod_hadd.xlsx")
+
+GOM_mean_bt_temps_means<-GOM_mean_bt_temps %>%
+  dplyr::mutate(year=as.numeric(year), 
+                month=as.numeric(month)) %>%
+  dplyr::filter(year==2020) %>% 
+  dplyr::rename(bt_temp_2020=bt_tmp) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::mutate(mean_annual_tmp_2020=mean(bt_temp_2020)) %>% 
+  dplyr::ungroup()
+
+temp_diff<-GOM_mean_bt_temps_means %>% 
+  dplyr::right_join(bt_temp_project, by="month") %>% 
+  dplyr::mutate(temp_diff=mean_temp-bt_temp_2020, 
+                temp_diff_lower=lower-bt_temp_2020, 
+                temp_diff_upper=upper-bt_temp_2020, 
+                temp_diff_annual=mean_decadal_tmp-mean_annual_tmp_2020)%>% 
+  dplyr::arrange(decade, month) 
+  
+ggplot(temp_diff, aes(month, temp_diff)) + geom_point() + 
+  geom_errorbar(aes(ymin = temp_diff_lower, ymax = temp_diff_upper))+ 
+  facet_wrap(~decade, nrow = 1) + #scale_x_continuous(breaks=seq(1,12,1)) +
+  #scale_y_continuous(limits = c(3.5,12.5)) +
+  theme(axis.text.x = element_blank(),  strip.text = element_text(size = 10, margin = margin()), 
+         axis.ticks.x=element_blank()) +
+  geom_hline(data=temp_diff, aes(yintercept=temp_diff_annual) ,color="red")+
+  labs( x=NULL, y = "Projected temperature - 2020 temperature") +ggtitle("Projected differences in average monthly sea bottom temperatures relative to 2020")
+
+temp_diff1<- temp_diff %>% 
+  dplyr::select(decade, month,temp_diff ) %>% 
+  dplyr::rename(decade2= decade) %>%
+  dplyr::mutate(decade = case_when(decade2=='2021-2030'~1,
+                                   decade2=='2031-2040'~2,
+                                   decade2=='2041-2050'~3,
+                                   decade2=='2051-2060'~4,
+                                   decade2=='2061-2070'~5,
+                                   decade2=='2071-2080'~6,
+                                   decade2=='2081-2090'~7,
+                                   decade2=='2091-3000'~8)) %>% 
+  dplyr::select(-decade2)  %>% 
+  dplyr::mutate(decade=as.numeric(decade)) %>% 
+  dplyr::mutate(month=as.numeric(month)) 
+```
+
+### Baseline (2020) fishery statistics
+Index "_i" indicates per choice occasion variable 
+
+```{r echo = FALSE}
+calib_data <- readRDS("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/calibration_data_all_2020.rds")
+calib_data<-calib_data %>% 
+  dplyr::group_by(draw) %>% 
+  dplyr::summarise(estimated_trips=sum(estimated_trips),
+                   n_choice_occasions = sum(n_choice_occasions),
+                   tot_cod_catch= sum(tot_cod_catch), 
+                   tot_keep_cod = sum(tot_keep_cod), 
+                   tot_rel_cod = sum(tot_rel_cod), 
+                   
+                   tot_hadd_catch = sum(tot_hadd_catch), 
+                   tot_keep_hadd = sum(tot_keep_hadd),
+                   tot_rel_hadd = sum(tot_rel_hadd)) %>% 
+  
+  dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
+                hadd_keep_i=tot_keep_hadd/n_choice_occasions,
+                cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+                cod_catch_i=tot_cod_catch/n_choice_occasions, 
+                hadd_catch_i=tot_hadd_catch/n_choice_occasions, 
+                cod_catch_trip=tot_cod_catch/estimated_trips, 
+                hadd_catch_trip=tot_hadd_catch/estimated_trips)  #%>% 
+  #dplyr::select(-draw)
+```
+
+```{r echo = FALSE}
+# Summarize
+summ_data <- data.frame(t(sapply(calib_data, function(x) 
+  list(mean = round(mean(x,na.rm=TRUE), 4), sd = round(sd(x,na.rm=TRUE), 4) ))))
+#Change rownames to new column
+summ_data$variable <- rownames(summ_data)
+#Remove rownames
+rownames(summ_data) <- NULL
+#Make variable column as 1st column
+sums<-cbind(summ_data[ncol(summ_data)], summ_data[-ncol(summ_data)])
+print.data.frame(sums, row.names = FALSE)
+```
+
+<div style="margin-bottom:50x;">
+</div>
+### Baseline welfare calculations
+After calibrating the simulation model to 2020 fishery conditions, I re-ran the model under two closure scenarios: (a) bag limits for both cod and haddock set to zero, and (b) bag limits for cod only set to zero.  
+$~$
+```{r include = FALSE}
+library(readxl)
+full_closure<-data.frame(read_excel("baseline_welfare.xlsx"))
+#full_closure<-full_closure %>% 
+#  dplyr::mutate(scenario="full_closure")
+
+full_closure<-full_closure %>% 
+   dplyr::mutate(tot_cod_catch=cod_keep_sum+cod_rel_sum, 
+                 tot_hadd_catch=hadd_keep_sum+hadd_rel_sum,
+                cod_keep_i=cod_keep_sum/n_choice_occasions_sum, 
+                hadd_keep_i=hadd_keep_sum/n_choice_occasions_sum,
+                cod_keep_trip=cod_keep_sum/ntrips_sum, 
+                hadd_keep_trip=hadd_keep_sum/ntrips_sum, 
+                cod_catch_i=tot_cod_catch/n_choice_occasions_sum, 
+                hadd_catch_i=tot_hadd_catch/n_choice_occasions_sum, 
+                cod_catch_trip=tot_cod_catch/ntrips_sum, 
+                hadd_catch_trip=tot_hadd_catch/ntrips_sum, 
+                cv_trip=cv_sum/ntrips_sum, 
+                percent_redux_trips=(((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline))*100) %>% 
+  dplyr::select(cv_sum,tot_cod_catch, tot_hadd_catch, cod_keep_i, hadd_keep_i, cod_keep_trip, hadd_keep_trip, 
+                cod_catch_i, hadd_catch_i, cod_catch_trip, hadd_catch_trip, cv_trip, percent_redux_trips)
+
+# Summarize
+summ_data <- data.frame(t(sapply(full_closure, function(x) 
+  list(mean = round(mean(x,na.rm=TRUE), 4), sd = round(sd(x,na.rm=TRUE), 4) ))))
+#Change rownames to new column
+summ_data$variable <- rownames(summ_data)
+#Remove rownames
+rownames(summ_data) <- NULL
+#Make variable column as 1st column
+sums<-cbind(summ_data[ncol(summ_data)], summ_data[-ncol(summ_data)])
+```
+<div style="margin-bottom:50x;">
+</div>
+
+#### Scenario (a): close both fisheries 
+```{r echo = FALSE}
+print.data.frame(sums, row.names = FALSE)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Scenario (b): close cod only 
+```{r echo = FALSE}
+full_closure<-data.frame(read_excel("baseline_welfare_close_cod.xlsx"))
+#full_closure<-full_closure %>% 
+#  dplyr::mutate(scenario="full_closure")
+
+full_closure<-full_closure %>% 
+   dplyr::mutate(tot_cod_catch=cod_keep_sum+cod_rel_sum, 
+                 tot_hadd_catch=hadd_keep_sum+hadd_rel_sum,
+                cod_keep_i=cod_keep_sum/n_choice_occasions_sum, 
+                hadd_keep_i=hadd_keep_sum/n_choice_occasions_sum,
+                cod_keep_trip=cod_keep_sum/ntrips_sum, 
+                hadd_keep_trip=hadd_keep_sum/ntrips_sum, 
+                cod_catch_i=tot_cod_catch/n_choice_occasions_sum, 
+                hadd_catch_i=tot_hadd_catch/n_choice_occasions_sum, 
+                cod_catch_trip=tot_cod_catch/ntrips_sum, 
+                hadd_catch_trip=tot_hadd_catch/ntrips_sum, 
+                cv_trip=cv_sum/ntrips_sum, 
+                percent_redux_trips=(((ntrips_sum-ntrips_sum_baseline)/ntrips_sum_baseline))*100) %>% 
+  dplyr::select(cv_sum,tot_cod_catch, tot_hadd_catch, cod_keep_i, hadd_keep_i, cod_keep_trip, hadd_keep_trip, 
+                cod_catch_i, hadd_catch_i, cod_catch_trip, hadd_catch_trip, cv_trip, percent_redux_trips)
+
+# Summarize
+summ_data <- data.frame(t(sapply(full_closure, function(x) 
+  list(mean = round(mean(x,na.rm=TRUE), 4), sd = round(sd(x,na.rm=TRUE), 4) ))))
+#Change rownames to new column
+summ_data$variable <- rownames(summ_data)
+#Remove rownames
+rownames(summ_data) <- NULL
+#Make variable column as 1st column
+sums<-cbind(summ_data[ncol(summ_data)], summ_data[-ncol(summ_data)])
+print.data.frame(sums, row.names = FALSE)
+```
+
+### Historical projected fishery outcomes  {.tabset}
+#### Total CV
+
+```{r echo = FALSE}
+hist_predictions_data1<- rbind(read_excel("predictions_historical_v2__clayton_corr.xlsx"),
+                               read_excel("predictions_historical_v2__frank_corr.xlsx"), 
+                               read_excel("predictions_historical_v2__plackett_corr.xlsx"),
+                               read_excel("predictions_historical_v2__gaussian_corr.xlsx"),
+                               read_excel("predictions_historical_v2__gumbel_corr.xlsx")) %>% 
+  dplyr::mutate(prediction_year=as.numeric(prediction_year)) %>% 
+  dplyr::group_by(draw, copula, prediction_year) %>% 
+  dplyr::summarise(estimated_trips=sum(ntrips_alt_sum),
+                   tot_cod_catch= sum(cod_catch_sum), 
+                   tot_keep_cod = sum(cod_keep_sum), 
+                   tot_hadd_catch = sum(hadd_catch_sum), 
+                   tot_keep_hadd = sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),.groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+                cod_catch_trip=tot_cod_catch/estimated_trips, 
+                hadd_catch_trip=tot_hadd_catch/estimated_trips, 
+                cv_trip=cv_sum/estimated_trips) 
+
+hist_predictions_data2<- rbind(read_excel("predictions_historical_v2__clayton_ind.xlsx"),
+                               read_excel("predictions_historical_v2__frank_ind.xlsx"), 
+                               read_excel("predictions_historical_v2__plackett_ind.xlsx"),
+                               read_excel("predictions_historical_v2__gaussian_ind.xlsx"),
+                               read_excel("predictions_historical_v2__gumbel_ind.xlsx")) %>% 
+  dplyr::mutate(prediction_year=as.numeric(prediction_year)) %>% 
+  dplyr::group_by(draw, copula, prediction_year) %>% 
+  dplyr::summarise(estimated_trips_ind=sum(ntrips_alt_sum),
+                   tot_cod_catch_ind= sum(cod_catch_sum), 
+                   tot_keep_cod_ind = sum(cod_keep_sum), 
+                   tot_hadd_catch_ind = sum(hadd_catch_sum), 
+                   tot_keep_hadd_ind = sum(hadd_catch_sum),
+                   cv_sum_ind=sum(cv_sum),.groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip_ind=tot_keep_cod_ind/estimated_trips_ind, 
+                hadd_keep_trip_ind=tot_keep_hadd_ind/estimated_trips_ind, 
+                cod_catch_trip_ind=tot_cod_catch_ind/estimated_trips_ind, 
+                hadd_catch_trip_ind=tot_hadd_catch_ind/estimated_trips_ind, 
+                cv_trip_ind=cv_sum_ind/estimated_trips_ind)
+
+hist_predictions_data3<-hist_predictions_data2 %>% 
+  dplyr::left_join(hist_predictions_data1, by=c("draw", "copula", "prediction_year")) %>% 
+  dplyr::mutate(cv_trip_diff=cv_trip-cv_trip_ind, 
+                cv_sum_diff=cv_sum-cv_sum_ind)
+
+```
+
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### Difference in total CV between ind. and corr (tot_cv_corr-tot_cv_ind)
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum_diff, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### CV per trip
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### Difference in CV per trip between ind. and corr (trip_cv_corr-trip_cv_ind)
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip_diff, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+### {-}
+
+### Annual fishery outcomes under climate-induced changes in catch-per-trip {.tabset}
+Each tab contains different projected fishery outcomes across copula models. 
+
+#### CV as a proportion of CV under full-closure of 2020 fishery
+```{r echo = FALSE,  fig.width=10}
+full_closure<-data.frame(read_excel("baseline_welfare.xlsx"))
+full_closure<-full_closure %>% 
+  dplyr::select(draw, cv_sum) %>% 
+  dplyr::rename(cv_sum_closure=cv_sum)
+
+predictions_data1<- read_excel("predictions_v2__frank_corr.xlsx") 
+predictions_data1 <-predictions_data1 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup() 
+
+predictions_data2<- read_excel("predictions_v2__clayton_corr.xlsx") 
+predictions_data2 <-predictions_data2 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup()  
+
+predictions_data3<- read_excel("predictions_v2__gumbel_corr.xlsx") 
+predictions_data3 <-predictions_data3 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup()  
+
+predictions_data4<- read_excel("predictions_v2__plackett_corr.xlsx") 
+predictions_data4 <-predictions_data4 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup()  
+
+predictions_data5<- read_excel("predictions_v2__gaussian_corr.xlsx") 
+predictions_data5 <-predictions_data5 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup() 
+
+predictions_data6<- read_excel("predictions_v2__clayton_ind.xlsx") 
+predictions_data6 <-predictions_data6 %>% 
+  mutate(copula= str_replace_all(copula, "([_])", "")) %>% 
+  dplyr::mutate(decade=as.character(decade)) %>% 
+  dplyr::mutate(copula="clayton_ind") %>%
+  dplyr::group_by(decade, draw, copula) %>% 
+  dplyr::summarise(cv_sum=sum(cv_sum), .groups = 'drop') %>% 
+  dplyr::ungroup()  
+
+predictions_data<-rbind.fill(predictions_data1, predictions_data2, predictions_data3, predictions_data4, predictions_data5, predictions_data6)
+  
+predictions_data<-  predictions_data %>% 
+  dplyr::left_join(full_closure, by="draw") %>% 
+  dplyr::mutate(perc_diff_full_closure=cv_sum/cv_sum_closure)
+
+#predictions_data<- rbind.fill(predictions_data, baseline_stats)
+
+ggplot(predictions_data, aes(x=factor(decade), y=perc_diff_full_closure, color = factor(copula)))+
+     geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Total CV
+```{r echo = FALSE, fig.width=10}
+predictions_data1<- rbind(read_excel("predictions_v2__clayton_corr.xlsx"),
+                               read_excel("predictions_v2__frank_corr.xlsx"), 
+                               read_excel("predictions_v2__plackett_corr.xlsx"),
+                               read_excel("predictions_v2__gaussian_corr.xlsx"),
+                               read_excel("predictions_v2__gumbel_corr.xlsx")) %>% 
+  dplyr::mutate(decade=as.numeric(decade)) %>% 
+  dplyr::group_by(draw, copula, decade) %>% 
+  dplyr::summarise(estimated_trips=sum(ntrips_alt_sum),
+                   tot_cod_catch= sum(cod_catch_sum), 
+                   tot_keep_cod = sum(cod_keep_sum), 
+                   tot_hadd_catch = sum(hadd_catch_sum), 
+                   tot_keep_hadd = sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   k_tau_keep=mean(k_tau_keep_est), 
+                   k_tau_catch=mean(k_tau_catch_est), .groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+                cod_catch_trip=tot_cod_catch/estimated_trips, 
+                hadd_catch_trip=tot_hadd_catch/estimated_trips, 
+                cv_trip=cv_sum/estimated_trips) 
+
+predictions_data2<- rbind(read_excel("predictions_v2__clayton_ind.xlsx"),
+                               read_excel("predictions_v2__frank_ind.xlsx"), 
+                               read_excel("predictions_v2__plackett_ind.xlsx"),
+                               read_excel("predictions_v2__gaussian_ind.xlsx"),
+                               read_excel("predictions_v2__gumbel_ind.xlsx")) %>% 
+  dplyr::mutate(decade=as.numeric(decade)) %>% 
+  dplyr::group_by(draw, copula, decade) %>% 
+  dplyr::summarise(estimated_trips_ind=sum(ntrips_alt_sum),
+                   tot_cod_catch_ind= sum(cod_catch_sum), 
+                   tot_keep_cod_ind = sum(cod_keep_sum), 
+                   tot_hadd_catch_ind = sum(hadd_catch_sum), 
+                   tot_keep_hadd_ind = sum(hadd_catch_sum),
+                   cv_sum_ind=sum(cv_sum),
+                   k_tau_keep_ind=mean(k_tau_keep_est), 
+                   k_tau_catch_ind=mean(k_tau_catch_est), 
+                   k_tau_keep_ind=mean(k_tau_keep_est), .groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip_ind=tot_keep_cod_ind/estimated_trips_ind, 
+                hadd_keep_trip_ind=tot_keep_hadd_ind/estimated_trips_ind, 
+                cod_catch_trip_ind=tot_cod_catch_ind/estimated_trips_ind, 
+                hadd_catch_trip_ind=tot_hadd_catch_ind/estimated_trips_ind, 
+                cv_trip_ind=cv_sum_ind/estimated_trips_ind)
+
+predictions_data3<-predictions_data2 %>% 
+  dplyr::left_join(predictions_data1, by=c("draw", "copula", "decade")) %>% 
+  dplyr::mutate(cv_trip_diff=cv_trip-cv_trip_ind, 
+                cv_sum_diff=cv_sum-cv_sum_ind)
+
+calib_data2<-calib_data %>% 
+  dplyr::mutate(copula="baseline", decade=0)
+
+
+calib_data_ktau<-read_rds("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/k_tau_values_calibration_2020.rds") %>% 
+  dplyr::mutate(decade=0) %>% 
+  dplyr::rename(k_tau_keep=k_tau_keep_est, 
+                k_tau_catch=k_tau_catch_est) %>% 
+  dplyr::mutate(copula="baseline")
+
+
+
+predictions_data4<-rbind.fill(predictions_data3, calib_data_ktau) 
+predictions_data5<-rbind.fill(predictions_data3, calib_data2) 
+
+
+
+ggplot(predictions_data3, aes(x=factor(decade), y=cv_sum, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Difference in total CV between ind. and corr (tot_cv_corr-tot_cv_ind)
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data3, aes(x=factor(decade), y=cv_sum_diff, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### CV per trip
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data3, aes(x=factor(decade), y=cv_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Difference in CV per trip between ind. and corr (cv_trip_corr-cv_trip_ind)
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data3, aes(x=factor(decade), y=cv_trip_diff, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod catch 
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data5, aes(x=factor(decade), y=cod_catch_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep 
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data5, aes(x=factor(decade), y=cod_keep_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### hadd catch  
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data5, aes(x=factor(decade), y=hadd_catch_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### hadd keep  
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data5, aes(x=factor(decade), y=hadd_keep_trip, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### ktau keep   
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data4, aes(x=factor(decade), y=k_tau_keep, color = factor(copula)))+
+     geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### ktau catch   
+
+```{r echo = FALSE, fig.width=10}
+ggplot(predictions_data4, aes(x=factor(decade), y=k_tau_catch, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+### {-}
+
+### OLS meta-analaysis of simulation results
+The following OLS regression uses as data the 10 sets of results above (5 copulas, each with independent and correlated catch).  
+
+```{r echo=FALSE, fig.cap="OLS results of total monthly CV", out.width = '70%'}
+knitr::include_graphics("figure/OLS meta-analysis monthly.png")
+```
+
+### Monthly fishery outcomes under climate-induced changes in catch-per-trip {.tabset}
+Number of directed trips by month in 2020 (total=312,757):
+
+<!--```{r echo = FALSE, results = 'asis'}
+directed_trips_base<-data.frame(read_excel("directed_trips.xlsx"))
+directed_trips_base<-directed_trips_base %>% 
+  dplyr::select(-number_trips_to_sample, -percent_of_trips, -period2) %>% 
+  dplyr::arrange(month, period, mode1)
+kable(directed_trips_base, caption = "Number of directed trips for cod and haddock in 2020.")
+``` -->
+
+```{r echo=FALSE, fig.width=10}
+directed_trips_base<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE)) %>% 
+  dplyr::filter(year==2020) %>% 
+  dplyr::group_by(month) %>% 
+  dplyr::summarise(dtrip=sum(dtrip))
+
+ggplot(directed_trips_base, aes(x=as.factor(month), y=dtrip)) + 
+  geom_bar(stat ="identity")
+
+#knitr::include_graphics("figure/dtrips1.png")
+```
+Each tab contains different projected fishery outcomes by month across copula models.
+
+#### Total CV
+
+```{r echo = FALSE,  fig.width=15}
+calib_data3 <- readRDS("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/calibration_data_all_2020.rds")
+calib_data3<-calib_data3 %>% 
+    dplyr::mutate(month=as.numeric(month)) %>% 
+    dplyr::group_by(draw, month) %>% 
+    dplyr::summarise(estimated_trips=sum(estimated_trips),
+                   n_choice_occasions = sum(n_choice_occasions),
+                   tot_cod_catch= sum(tot_cod_catch), 
+                   tot_keep_cod = sum(tot_keep_cod), 
+                   tot_rel_cod = sum(tot_rel_cod), 
+                   
+                   tot_hadd_catch = sum(tot_hadd_catch), 
+                   tot_keep_hadd = sum(tot_keep_hadd),
+                   tot_rel_hadd = sum(tot_rel_hadd), .groups = 'drop') %>% 
+  
+  dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
+                hadd_keep_i=tot_keep_hadd/n_choice_occasions,
+                cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+                cod_catch_i=tot_cod_catch/n_choice_occasions, 
+                hadd_catch_i=tot_hadd_catch/n_choice_occasions, 
+                cod_catch_trip=tot_cod_catch/estimated_trips, 
+                hadd_catch_trip=tot_hadd_catch/estimated_trips, 
+                copula="baseline")
+
+calib_data31<-calib_data3 %>% 
+  dplyr::mutate(decade=1)
+calib_data32<-calib_data3 %>% 
+  dplyr::mutate(decade=2)
+calib_data33<-calib_data3 %>% 
+  dplyr::mutate(decade=3)
+calib_data34<-calib_data3 %>% 
+  dplyr::mutate(decade=4)
+calib_data35<-calib_data3 %>% 
+  dplyr::mutate(decade=5)
+calib_data36<-calib_data3 %>% 
+  dplyr::mutate(decade=6)
+calib_data37<-calib_data3 %>% 
+  dplyr::mutate(decade=7)
+calib_data38<-calib_data3 %>% 
+  dplyr::mutate(decade=8)
+
+calib_data_all<-rbind.fill(calib_data31, calib_data32, calib_data33, calib_data34,
+                            calib_data35, calib_data36, calib_data37, calib_data38)
+
+
+predictions_data1<- rbind(read_excel("predictions_v2__clayton_corr.xlsx"),
+                               read_excel("predictions_v2__frank_corr.xlsx"), 
+                               read_excel("predictions_v2__plackett_corr.xlsx"),
+                               read_excel("predictions_v2__gaussian_corr.xlsx"),
+                               read_excel("predictions_v2__gumbel_corr.xlsx")) %>% 
+  dplyr::mutate(decade=as.numeric(decade), 
+                month=as.numeric(month)) %>% 
+  dplyr::group_by(draw, copula, decade, month) %>% 
+  dplyr::summarise(estimated_trips=sum(ntrips_alt_sum),
+                   tot_cod_catch= sum(cod_catch_sum), 
+                   tot_keep_cod = sum(cod_keep_sum), 
+                   tot_hadd_catch = sum(hadd_catch_sum), 
+                   tot_keep_hadd = sum(hadd_catch_sum),
+                   cv_sum=sum(cv_sum),
+                   k_tau_keep=mean(k_tau_keep_est), 
+                   k_tau_catch=mean(k_tau_catch_est), .groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip=tot_keep_cod/estimated_trips, 
+                hadd_keep_trip=tot_keep_hadd/estimated_trips, 
+                cod_catch_trip=tot_cod_catch/estimated_trips, 
+                hadd_catch_trip=tot_hadd_catch/estimated_trips, 
+                cv_trip=cv_sum/estimated_trips) 
+
+predictions_data2<- rbind(read_excel("predictions_v2__clayton_ind.xlsx"),
+                               read_excel("predictions_v2__frank_ind.xlsx"), 
+                               read_excel("predictions_v2__plackett_ind.xlsx"),
+                               read_excel("predictions_v2__gaussian_ind.xlsx"),
+                               read_excel("predictions_v2__gumbel_ind.xlsx")) %>% 
+  dplyr::mutate(decade=as.numeric(decade),
+                  month=as.numeric(month)) %>% 
+  dplyr::group_by(draw, copula, decade, month) %>% 
+  dplyr::summarise(estimated_trips_ind=sum(ntrips_alt_sum),
+                   tot_cod_catch_ind= sum(cod_catch_sum), 
+                   tot_keep_cod_ind = sum(cod_keep_sum), 
+                   tot_hadd_catch_ind = sum(hadd_catch_sum), 
+                   tot_keep_hadd_ind = sum(hadd_catch_sum),
+                   cv_sum_ind=sum(cv_sum),
+                   k_tau_keep_ind=mean(k_tau_keep_est), 
+                   k_tau_catch_ind=mean(k_tau_catch_est), 
+                   k_tau_keep_ind=mean(k_tau_keep_est), .groups = 'drop') %>%
+  dplyr::ungroup() %>% 
+  dplyr::mutate(cod_keep_trip_ind=tot_keep_cod_ind/estimated_trips_ind, 
+                hadd_keep_trip_ind=tot_keep_hadd_ind/estimated_trips_ind, 
+                cod_catch_trip_ind=tot_cod_catch_ind/estimated_trips_ind, 
+                hadd_catch_trip_ind=tot_hadd_catch_ind/estimated_trips_ind, 
+                cv_trip_ind=cv_sum_ind/estimated_trips_ind)
+
+predictions_data3<-predictions_data2 %>% 
+  dplyr::left_join(predictions_data1, by=c("draw", "copula", "decade", "month")) %>% 
+  dplyr::mutate(cv_trip_diff=cv_trip-cv_trip_ind, 
+                cv_sum_diff=cv_sum-cv_sum_ind)
+
+predictions_data5<-rbind.fill(predictions_data3, calib_data_all)
+
+
+
+calib_data_ktau<-read_rds("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/k_tau_values_month_calibration_2020.rds") %>% 
+  dplyr::rename(k_tau_keep=k_tau_keep_est, 
+                k_tau_catch=k_tau_catch_est) %>% 
+  dplyr::mutate(copula="baseline")
+
+calib_data_ktau1<-calib_data_ktau %>% 
+  dplyr::mutate(decade=1)
+calib_data_ktau2<-calib_data_ktau %>% 
+  dplyr::mutate(decade=2)
+calib_data_ktau3<-calib_data_ktau %>% 
+  dplyr::mutate(decade=3)
+calib_data_ktau4<-calib_data_ktau %>% 
+  dplyr::mutate(decade=4)
+calib_data_ktau5<-calib_data_ktau %>% 
+  dplyr::mutate(decade=5)
+calib_data_ktau6<-calib_data_ktau %>% 
+  dplyr::mutate(decade=6)
+calib_data_ktau7<-calib_data_ktau %>% 
+  dplyr::mutate(decade=7)
+calib_data_ktau8<-calib_data_ktau %>% 
+  dplyr::mutate(decade=8)
+
+calib_data_ktau<-rbind.fill(calib_data_ktau1, calib_data_ktau2, calib_data_ktau3, calib_data_ktau4,
+                            calib_data_ktau5, calib_data_ktau6, calib_data_ktau7, calib_data_ktau8)
+
+predictions_data4<-rbind.fill(predictions_data3, calib_data_ktau)
+
+ggplot(predictions_data3, aes(x=factor(month), y=cv_sum, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+
+<div style="margin-bottom:50px;">
+</div>
+
+
+#### Difference in total CV between ind. and corr (tot_cv_corr-tot_cv_ind)
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data3, aes(x=factor(month), y=cv_sum_diff, color = factor(copula)))+
+     geom_boxplot()  +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### CV per trip
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data3, aes(x=factor(month), y=cv_trip, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Difference in CV per trip between ind. and corr (cv_trip_corr-cv_trip_ind)
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data3, aes(x=factor(month), y=cv_trip_diff, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod catch 
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data5, aes(x=factor(month), y=cod_catch_trip, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep 
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data5, aes(x=factor(month), y=cod_keep_trip, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### hadd catch  
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data5, aes(x=factor(month), y=hadd_catch_trip, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### hadd keep  
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data5, aes(x=factor(month), y=hadd_keep_trip, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### ktau keep   
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data4, aes(x=factor(month), y=k_tau_keep, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### ktau catch   
+
+```{r echo = FALSE, fig.width=15}
+ggplot(predictions_data4, aes(x=factor(month), y=k_tau_catch, color = factor(copula)))+
+     geom_boxplot() +  facet_wrap(~decade, nrow = 2)
+```
+
+### {-}

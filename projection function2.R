@@ -7,7 +7,8 @@ p_star_hadd<-p_star_hadd_variable
 
 #profvis::profvis({
 
-catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip 4_30.csv")),  show_col_types = FALSE) 
+#catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip 5_6.csv")),  show_col_types = FALSE) 
+catch_data_all <-readr::read_csv(file.path(here::here("projection catch per trip 5_28.csv")),  show_col_types = FALSE) 
 
 predictions_d<-list()
 
@@ -23,9 +24,16 @@ for(x in 1:100){
 set.seed(130+d+x)
 # Input the calibration output which contains the number of choice occasions needed to simulate
 #calibration_data <- as.data.frame(calibration_data_table_base[[x]]) %>% tibble() 
-calibration_data <- readRDS("calibration_data_all.rds") %>% 
+
+calibration_data_all <- readRDS("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/calibration_data_all_2020.rds") %>% 
   dplyr::filter(draw==x)
 
+# period_check<-calibration_data_all %>% 
+#   dplyr::select(period2) %>% 
+#   distinct(period2)
+# 
+# catch_data_all1<-catch_data_all1 %>% 
+#   dplyr::right_join(period_check, by="period2")
 # Input regs
 #directed_trips <- as.data.frame(read.csv("directed trips and regulations 2020.csv"))
 #directed_trips$dtrip=round(directed_trips$dtrip)
@@ -47,6 +55,8 @@ directed_trips_p <- directed_trips %>% #subset(directed_trips, period == p)
   mutate(n_trips = floor(dtrip),
          n_draws = n_drawz) 
 
+
+
 period_vec <- directed_trips_p %>% 
   dplyr::select(period2, n_draws, month) %>% 
   uncount(n_draws) 
@@ -59,13 +69,13 @@ regs <- directed_trips_p %>%
 regs_check <- directed_trips_p %>% 
   dplyr::select(period2, dtrip)
 
-catch_data <- catch_data_all1 %>% 
-  # dplyr::filter(decade==d) %>% 
-  group_by(period2, decade) %>%
-  slice_sample(n = n_drawz*n_catch_draws, replace = TRUE)   %>%
-  mutate(catch_draw = rep(1:n_catch_draws, length.out = n_drawz*n_catch_draws), 
-         tripid = rep(1:n_drawz, each=n_catch_draws)) %>%
-  ungroup %>% 
+catch_data <- catch_data_all1 %>%
+  dplyr::group_by(period2, decade) %>%
+  dplyr::slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
+  dplyr::mutate(catch_draw = rep(1:n_catch_draws, length.out = n_drawz * n_catch_draws),
+                 tripid = rep(1:n_drawz, each = n_catch_draws)
+  ) %>%
+  dplyr::ungroup() %>% 
   dplyr::right_join(regs_check, by="period2") %>% 
   dplyr::select(-dtrip) 
 
@@ -227,7 +237,9 @@ t<-ind_or_corr
     #rm(catch_data, catch_data0, catch_data1)
     
     
-    costs_new_all<- readRDS(here::here(paste0("cost_files/cost_files_all_draw_",x,".rds")))
+    costs_new_all <- readRDS(paste0("calibration_data/cost_files_all_draw_2020_",x,".rds"))  %>% #tibble() %>% 
+      filter(catch_draw<=n_catch_draws)
+    
     costs_new_all<-data.table(costs_new_all, key = c("period2", "catch_draw", "tripid"))
     
     
@@ -380,7 +392,7 @@ t<-ind_or_corr
     #mean_trip_pool by the expansion factor (expand), so that  each choice occasion represents a certain number of choice occasions
     # calibration_data <- calibration_data  #%>%   rename(period2 = period)
     
-    trip_level_output <- calibration_data %>% 
+    trip_level_output <- calibration_data_all %>% 
       dplyr::select(c(n_choice_occasions, period)) %>% 
       rename(period2=period)  %>% 
       right_join(mean_trip_data, by = "period2") %>% 
@@ -455,10 +467,13 @@ t<-ind_or_corr
       dplyr::ungroup() %>% 
       dplyr:: mutate(trip_sum = sum(ntrips_alt_sum), 
                      trip_props = ntrips_alt_sum/trip_sum, 
-                     n_sample=round(5000*trip_props)) 
+                     n_sample=round(5000*trip_props)) %>% 
+      dplyr::mutate(n_sample=case_when(n_sample==0 ~ 1, TRUE~n_sample))
     
     domains=as.factor(trip_level_output2$period2)
     levels(domains)
+    
+    
     
     for(z in levels(domains)){
       assign(paste0("ntrip_", z), mean(trip_level_output2[(trip_level_output2$period2 == z),]$n_sample))
@@ -520,7 +535,8 @@ t<-ind_or_corr
       dplyr::right_join(trip_level_output3, by="month") %>% 
       dplyr::ungroup() %>% 
       dplyr:: mutate(trip_props = ntrips_alt_sum/ntrips_alt_month_sum, 
-                     n_sample=round(5000*trip_props)) 
+                     n_sample=round(5000*trip_props)) %>% 
+      dplyr::mutate(n_sample=case_when(n_sample==0 ~ 1, TRUE~n_sample))
     
     domains=as.factor(trip_level_output4$period2)
     levels(domains)

@@ -1,6 +1,11 @@
 
 
 
+
+p_star_cod <- p_star_cod_variable
+p_star_hadd<-p_star_hadd_variable
+
+
 # predict_rec_catch <- function(calibration_data_table,
 #                               directed_trips_table,
 #                               cod_size_data_read,
@@ -22,6 +27,7 @@
 #if (state1 %in% c("MA", "RI", "CT", "NY", "NJ", "VA")) {
 
 #x<-1
+set.seed(130+x)
 
 
 trip_level_output3=list()
@@ -53,6 +59,8 @@ directed_trips_p <- directed_trips %>% #subset(directed_trips, period == p)
     n_trips = floor(dtrip),
     n_draws = n_drawz) 
 
+directed_trips_p_check<-directed_trips_p %>% distinct(period2)
+
 
 period_vec <- directed_trips_p %>% 
   dplyr::select(period2, n_draws, month) %>% 
@@ -66,14 +74,16 @@ regs <- directed_trips_p %>%
 
 
 catch_data <- catch_data_all %>%
-  group_by(period2) %>%
-  slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
-  mutate(
+  dplyr::group_by(period2) %>%
+  dplyr::slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
+  dplyr::mutate(
     catch_draw = rep(1:n_catch_draws, length.out = n_drawz * n_catch_draws),
     tripid = rep(1:n_drawz, each = n_catch_draws)
   ) %>%
-  rename(tot_cod_catch=tot_cat_cod, tot_hadd_catch=tot_cat_hadd) %>% 
-  ungroup
+  dplyr::rename(tot_cod_catch=tot_cat_cod, tot_hadd_catch=tot_cat_hadd) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::select(-year) %>% 
+  dplyr::right_join(directed_trips_p_check, by="period2")
 
 
 
@@ -104,7 +114,7 @@ catch_data <-  catch_data %>%
 
 catch_data_cod <- catch_data %>%
   dplyr::left_join(regs, by = "period2") %>%
-  dplyr:: mutate(cod_bag=0) %>% 
+  dplyr:: mutate(cod_bag=0) %>%  #Set bag limits to zero
   dplyr::mutate(uniform=runif(nrow(catch_data))) %>%
   dplyr::mutate(posskeep = ifelse(uniform>=p_star_cod, 1,0)) %>%
   dplyr::group_by(tripid, period2, catch_draw)   %>%
@@ -231,8 +241,8 @@ rm(trip_data_hadd, catch_data_cod, cod_hadd_catch_data, cod_zero_catch, hadd_zer
 # costs_new_all <- as.data.frame(cost_files_all_base[[x]])   %>% #tibble() %>% 
 #   filter(catch_draw<=n_catch_draws) 
 
-costs_new_all <- readRDS(paste0("cost_files/cost_files_all_draw_",x,".rds"))  %>% #tibble() %>% 
-  filter(catch_draw<=n_catch_draws) 
+costs_new_all <- readRDS(paste0("calibration_data/cost_files_all_draw_2020_",x,".rds"))  %>% #tibble() %>% 
+  filter(catch_draw<=n_catch_draws)
 
 
 
