@@ -19,7 +19,7 @@ pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape"
                  "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
                  "logspline","readr","data.table","conflicted", "readxl", "writexl", "stringr",
                  "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc", "sjPlot", "gridExtra", 
-                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "knitr", "hrbrthemes")
+                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "knitr", "hrbrthemes", "ggpubr")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 conflict_prefer("filter", "dplyr")
@@ -187,7 +187,7 @@ calib_data<-calib_data %>%
                    tot_hadd_catch = sum(tot_hadd_catch), 
                    tot_keep_hadd = sum(tot_keep_hadd),
                    tot_rel_hadd = sum(tot_rel_hadd)) %>% 
-  
+  dplyr::ungroup() %>% 
   dplyr::mutate(cod_keep_i=tot_keep_cod/n_choice_occasions, 
                 hadd_keep_i=tot_keep_hadd/n_choice_occasions,
                 cod_keep_trip=tot_keep_cod/estimated_trips, 
@@ -294,7 +294,12 @@ print.data.frame(sums, row.names = FALSE)
 ```
 
 ### Historical projected fishery outcomes  {.tabset}
-#### Total CV
+From Jorge's notes: we will run the bioeconomic model for each of the years in the period 2010-2019 as follows: i) calibrate the model for year 201X, ii) predict year 201X+1 under independent and dependent catch-per trip for cod and haddock, then calibrate year 201X+1 and predict 201X+2 , and so forth. Jorge will generate the catch-per-trip data for each year for both the independent and correlated scenarios as follows: i) use the biomass and ocean bottom temperatures for each year in 2010-2019  to calculate the expect catch-per-trip for cod and haddock, ii) add to the expect catch-per-trip the simulated residuals (correlated or independent) to generate the independent and correlated samples to use in the simulations.
+
+I've included a plot of "bag limit potential" by species to visualize the stringency of regulations. To create this variable, I multiply the number of trips in 201X by season by the bag limit in 201X+1. In cases where the haddock bag limit was unlimited, I set the bag limit to 20 given the highest observed haddock bag limit over the series was 15. While size limits do change over the period, the model does not account for account for this. Instead, it implicitly assumes that the proportion of legal-size fish in the prediction year is the same as the proportion of legal-size fish in the calibration year. This is an issue we may want to revisit and correct for. 
+
+I've included a plot of raw bag limits by month and species. These are bag limits for private boats (which only vary from the for-hire sector in 2020). Since the model time step is bi-monthly (2 periods per month), I computed the average bag across periods for each month. 
+$~$
 
 ```{r echo = FALSE}
 hist_predictions_data1<- rbind(read_excel("predictions_historical_v2__clayton_corr.xlsx"),
@@ -308,8 +313,10 @@ hist_predictions_data1<- rbind(read_excel("predictions_historical_v2__clayton_co
                    tot_cod_catch= sum(cod_catch_sum), 
                    tot_keep_cod = sum(cod_keep_sum), 
                    tot_hadd_catch = sum(hadd_catch_sum), 
-                   tot_keep_hadd = sum(hadd_catch_sum),
-                   cv_sum=sum(cv_sum),.groups = 'drop') %>%
+                   tot_keep_hadd = sum(hadd_keep_sum),
+                   cv_sum=sum(cv_sum),
+                   k_tau_keep=mean(k_tau_keep_est), 
+                   k_tau_catch=mean(k_tau_catch_est), .groups = 'drop') %>%
   dplyr::ungroup() %>% 
   dplyr::mutate(cod_keep_trip=tot_keep_cod/estimated_trips, 
                 hadd_keep_trip=tot_keep_hadd/estimated_trips, 
@@ -328,8 +335,10 @@ hist_predictions_data2<- rbind(read_excel("predictions_historical_v2__clayton_in
                    tot_cod_catch_ind= sum(cod_catch_sum), 
                    tot_keep_cod_ind = sum(cod_keep_sum), 
                    tot_hadd_catch_ind = sum(hadd_catch_sum), 
-                   tot_keep_hadd_ind = sum(hadd_catch_sum),
-                   cv_sum_ind=sum(cv_sum),.groups = 'drop') %>%
+                   tot_keep_hadd_ind = sum(hadd_keep_sum),
+                   cv_sum_ind=sum(cv_sum),
+                   k_tau_keep_ind=mean(k_tau_keep_est), 
+                   k_tau_catch_ind=mean(k_tau_catch_est),.groups = 'drop') %>%
   dplyr::ungroup() %>% 
   dplyr::mutate(cod_keep_trip_ind=tot_keep_cod_ind/estimated_trips_ind, 
                 hadd_keep_trip_ind=tot_keep_hadd_ind/estimated_trips_ind, 
@@ -342,17 +351,111 @@ hist_predictions_data3<-hist_predictions_data2 %>%
   dplyr::mutate(cv_trip_diff=cv_trip-cv_trip_ind, 
                 cv_sum_diff=cv_sum-cv_sum_ind)
 
+hist_predictions_data4<-hist_predictions_data3 %>% 
+  dplyr::select(draw, copula, prediction_year,k_tau_keep) %>% 
+  dplyr::mutate(disposition="keep") %>% 
+  dplyr::rename(k_tau=k_tau_keep)
+
+hist_predictions_data5<-hist_predictions_data3 %>% 
+  dplyr::select(draw, copula, prediction_year,k_tau_catch) %>% 
+  dplyr::mutate(disposition="catch") %>% 
+  dplyr::rename(k_tau=k_tau_catch)
+  
+hist_predictions_data6=rbind.fill(hist_predictions_data4, hist_predictions_data5)
+
+
+##Regulations 
+directed_trips_base<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE)) %>% 
+  dplyr::mutate(prediction_year=year+1, 
+         bag_new=ifelse(hadd_bag_t_plus1>=100, 20, hadd_bag_t_plus1), 
+         cod_bag_potential=dtrip*cod_bag_t_plus1, 
+         hadd_bag_potential=dtrip*bag_new) %>% 
+  dplyr::group_by(prediction_year) %>% 
+  dplyr::summarise(cod_bag_potential=sum(cod_bag_potential), 
+                   hadd_bag_potential=sum(hadd_bag_potential),.groups = 'drop') %>% 
+  dplyr::filter(prediction_year!=2021)
+
+directed_trips_base_cod<-directed_trips_base %>% 
+  dplyr::select(-hadd_bag_potential) %>% 
+  dplyr::mutate(species="cod") %>% 
+  dplyr::rename(bag_potential=cod_bag_potential)
+
+directed_trips_base_hadd<-directed_trips_base %>% 
+  dplyr::select(-cod_bag_potential) %>% 
+  dplyr::mutate(species="hadd") %>% 
+  dplyr::rename(bag_potential=hadd_bag_potential)
+
+directed_trips_base_cod_hadd<-rbind.fill(directed_trips_base_cod, directed_trips_base_hadd)
+
+
+#raw regs
+
+mymode <- function(x) {
+                t <- table(x)
+                names(t)[ which.max(t) ]
+}
+
+
+directed_trips_base<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE)) %>% 
+    dplyr::filter(mode1=="pr") %>% 
+    dplyr::mutate(prediction_year=year+1,
+                   bag_new=ifelse(hadd_bag_t_plus1>=100, 20, hadd_bag_t_plus1), 
+                  prediction_year=as.numeric(prediction_year)) %>% 
+  dplyr::filter(prediction_year!=2021) %>% 
+    dplyr::group_by(prediction_year, month) %>% 
+    dplyr::summarise(cod_bag=mean(cod_bag_t_plus1), 
+                      hadd_bag=mean(bag_new), .groups='drop') 
+
+directed_trips_base_cod1<-directed_trips_base %>% 
+  dplyr::select(-hadd_bag) %>% 
+  dplyr::mutate(species="cod") %>% 
+  dplyr::rename(bag=cod_bag)
+
+directed_trips_base_hadd1<-directed_trips_base %>% 
+  dplyr::select(-cod_bag) %>% 
+  dplyr::mutate(species="hadd") %>% 
+  dplyr::rename(bag=hadd_bag)
+
+directed_trips_base_cod_hadd1<-rbind.fill(directed_trips_base_cod1, directed_trips_base_hadd1) %>% 
+  dplyr::filter(month!=3)
+library(zoo)
+directed_trips_base_cod_hadd1$YearMonth <- as.yearmon(paste(directed_trips_base_cod_hadd1$prediction_year, " ", directed_trips_base_cod_hadd1$month), "%Y %m")
+
 ```
 
+#### raw bag limits
+```{r echo = FALSE, fig.heaight=10, fig.width=10}
+ggplot(directed_trips_base_cod_hadd1, aes(x=as.factor(month), y=bag, fill=as.factor(species))) + 
+  geom_bar(position="dodge", stat ="identity") + facet_wrap(~prediction_year, nrow = 1)  
+
+```
+
+#### bag limit potential
+```{r echo = FALSE, fig.heaight=10, fig.width=10}
+ggplot(directed_trips_base_cod_hadd, aes(x=as.factor(prediction_year), y=bag_potential, fill=as.factor(species))) + 
+  geom_bar(position="dodge", stat ="identity")
+```
+
+#### Total CV
 ```{r echo = FALSE, fig.width=10}
 ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum, color = factor(copula)))+
      geom_boxplot() 
 ```
 
+
+
 #### Difference in total CV between ind. and corr (tot_cv_corr-tot_cv_ind)
 ```{r echo = FALSE, fig.width=10}
-ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum_diff, color = factor(copula)))+
+plot1<- ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum_diff, color = factor(copula)))+
      geom_boxplot() 
+
+plot2<-ggplot(directed_trips_base_cod_hadd, aes(x=as.factor(prediction_year), y=bag_potential, fill=as.factor(species))) +
+  geom_bar(position="dodge", stat ="identity")
+
+plot3<- ggplot(directed_trips_base_cod_hadd1, aes(x=as.factor(month), y=bag, fill=as.factor(species))) + 
+  geom_bar(position="dodge", stat ="identity") + facet_wrap(~prediction_year, nrow = 1) 
+
+ggarrange(plot1, plot2, plot3, ncol=1, nrow=3, heights=c(3,1,1))
 ```
 
 #### CV per trip
@@ -363,13 +466,56 @@ ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip, color =
 
 #### Difference in CV per trip between ind. and corr (trip_cv_corr-trip_cv_ind)
 ```{r echo = FALSE, fig.width=10}
-ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip_diff, color = factor(copula)))+
+plot1<- ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip_diff, color = factor(copula)))+
      geom_boxplot() 
+
+plot2<-ggplot(directed_trips_base_cod_hadd, aes(x=as.factor(prediction_year), y=bag_potential, fill=as.factor(species))) +
+  geom_bar(position="dodge", stat ="identity")
+
+plot3<- ggplot(directed_trips_base_cod_hadd1, aes(x=as.factor(month), y=bag, fill=as.factor(species))) + 
+  geom_bar(position="dodge", stat ="identity") + facet_wrap(~prediction_year, nrow = 1) 
+
+ggarrange(plot1, plot2, plot3, ncol=1, nrow=3, heights=c(3,1,1))
+```
+
+
+
+#### K-tau catch (correlated))
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_catch, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### K-tau keep (correlated))
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_keep, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### K-tau catch (independent))
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_catch_ind, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+#### K-tau keep (independent))
+```{r echo = FALSE, fig.width=10}
+ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_keep_ind, color = factor(copula)))+
+     geom_boxplot() 
+```
+
+
+#### K-tau catch vs. k-tau keep (clayton correlated))
+```{r echo = FALSE, fig.width=10}
+hist_predictions_data7<-hist_predictions_data6 %>% 
+  dplyr::filter(copula=="_clayton")
+ggplot(hist_predictions_data7, aes(x=factor(prediction_year), y=k_tau, color = factor(disposition)))+
+     geom_boxplot()  
 ```
 
 ### {-}
 
-### Annual fishery outcomes under climate-induced changes in catch-per-trip {.tabset}
+### Annual projected fishery outcomes under climate-induced changes in catch-per-trip {.tabset}
 Each tab contains different projected fishery outcomes across copula models. 
 
 #### CV as a proportion of CV under full-closure of 2020 fishery
@@ -456,7 +602,7 @@ predictions_data1<- rbind(read_excel("predictions_v2__clayton_corr.xlsx"),
                    tot_cod_catch= sum(cod_catch_sum), 
                    tot_keep_cod = sum(cod_keep_sum), 
                    tot_hadd_catch = sum(hadd_catch_sum), 
-                   tot_keep_hadd = sum(hadd_catch_sum),
+                   tot_keep_hadd = sum(hadd_keep_sum),
                    cv_sum=sum(cv_sum),
                    k_tau_keep=mean(k_tau_keep_est), 
                    k_tau_catch=mean(k_tau_catch_est), .groups = 'drop') %>%
@@ -478,7 +624,7 @@ predictions_data2<- rbind(read_excel("predictions_v2__clayton_ind.xlsx"),
                    tot_cod_catch_ind= sum(cod_catch_sum), 
                    tot_keep_cod_ind = sum(cod_keep_sum), 
                    tot_hadd_catch_ind = sum(hadd_catch_sum), 
-                   tot_keep_hadd_ind = sum(hadd_catch_sum),
+                   tot_keep_hadd_ind = sum(hadd_keep_sum),
                    cv_sum_ind=sum(cv_sum),
                    k_tau_keep_ind=mean(k_tau_keep_est), 
                    k_tau_catch_ind=mean(k_tau_catch_est), 
@@ -690,7 +836,7 @@ predictions_data1<- rbind(read_excel("predictions_v2__clayton_corr.xlsx"),
                    tot_cod_catch= sum(cod_catch_sum), 
                    tot_keep_cod = sum(cod_keep_sum), 
                    tot_hadd_catch = sum(hadd_catch_sum), 
-                   tot_keep_hadd = sum(hadd_catch_sum),
+                   tot_keep_hadd = sum(hadd_keep_sum),
                    cv_sum=sum(cv_sum),
                    k_tau_keep=mean(k_tau_keep_est), 
                    k_tau_catch=mean(k_tau_catch_est), .groups = 'drop') %>%
@@ -713,7 +859,7 @@ predictions_data2<- rbind(read_excel("predictions_v2__clayton_ind.xlsx"),
                    tot_cod_catch_ind= sum(cod_catch_sum), 
                    tot_keep_cod_ind = sum(cod_keep_sum), 
                    tot_hadd_catch_ind = sum(hadd_catch_sum), 
-                   tot_keep_hadd_ind = sum(hadd_catch_sum),
+                   tot_keep_hadd_ind = sum(hadd_keep_sum),
                    cv_sum_ind=sum(cv_sum),
                    k_tau_keep_ind=mean(k_tau_keep_est), 
                    k_tau_catch_ind=mean(k_tau_catch_est), 
