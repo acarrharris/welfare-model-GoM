@@ -296,9 +296,11 @@ print.data.frame(sums, row.names = FALSE)
 ### Historical projected fishery outcomes  {.tabset}
 From Jorge's notes: we will run the bioeconomic model for each of the years in the period 2010-2019 as follows: i) calibrate the model for year 201X, ii) predict year 201X+1 under independent and dependent catch-per trip for cod and haddock, then calibrate year 201X+1 and predict 201X+2 , and so forth. Jorge will generate the catch-per-trip data for each year for both the independent and correlated scenarios as follows: i) use the biomass and ocean bottom temperatures for each year in 2010-2019  to calculate the expect catch-per-trip for cod and haddock, ii) add to the expect catch-per-trip the simulated residuals (correlated or independent) to generate the independent and correlated samples to use in the simulations.
 
-I've included a plot of "bag limit potential" by species to visualize the stringency of regulations. To create this variable, I multiply the number of trips in 201X by season by the bag limit in 201X+1. In cases where the haddock bag limit was unlimited, I set the bag limit to 20 given the highest observed haddock bag limit over the series was 15. While size limits do change over the period, the model does not account for account for this. Instead, it implicitly assumes that the proportion of legal-size fish in the prediction year is the same as the proportion of legal-size fish in the calibration year. This is an issue we may want to revisit and correct for. 
+I've included a plot of "bag limit potential" by species to visualize the stringency of regulations. To create this variable, I multiply the number of trips in 201X by season by the bag limit in 201X+1. In cases where the haddock bag limit was unlimited, I set the bag limit to 20 given the highest observed haddock bag limit over the series was 15. The model does not account for changing size limits over the historical period. Instead, it assumes that the proportion of legal-size fish in 201X+1 is the same as the proportion of legal-size fish in 201X. This is an issue we may want to revisit and correct for. 
 
-I've included a plot of raw bag limits by month and species. These are bag limits for private boats (which only vary from the for-hire sector in 2020). Since the model time step is bi-monthly (2 periods per month), I computed the average bag across periods for each month. 
+I've also included a plot of bag limits by month and species. These are bag limits for the private boat mode, which only vary from the for-hire sector in 2020 and in 2017 for the state of MA. The 2017 MA regulations are applied to all trips in the model. Since the model time step is bi-monthly (two periods per month), I computed the average bag limit by month.
+
+One way to compare CV outcomes to regulatory stringency is to compute changes in bag limits or bag limit potential between years 201X and 201X+1. I have not gotten to this yet.     
 $~$
 
 ```{r echo = FALSE}
@@ -423,7 +425,7 @@ directed_trips_base_cod_hadd1$YearMonth <- as.yearmon(paste(directed_trips_base_
 
 ```
 
-#### raw bag limits
+#### bag limits
 ```{r echo = FALSE, fig.heaight=10, fig.width=10}
 ggplot(directed_trips_base_cod_hadd1, aes(x=as.factor(month), y=bag, fill=as.factor(species))) + 
   geom_bar(position="dodge", stat ="identity") + facet_wrap(~prediction_year, nrow = 1)  
@@ -445,7 +447,7 @@ ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum, color = 
 
 
 #### Difference in total CV between ind. and corr (tot_cv_corr-tot_cv_ind)
-```{r echo = FALSE, fig.width=10}
+```{r echo = FALSE, fig.height=13, fig.width=10}
 plot1<- ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_sum_diff, color = factor(copula)))+
      geom_boxplot() 
 
@@ -465,7 +467,7 @@ ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip, color =
 ```
 
 #### Difference in CV per trip between ind. and corr (trip_cv_corr-trip_cv_ind)
-```{r echo = FALSE, fig.width=10}
+```{r echo = FALSE, fig.height=13, fig.width=10}
 plot1<- ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=cv_trip_diff, color = factor(copula)))+
      geom_boxplot() 
 
@@ -480,32 +482,32 @@ ggarrange(plot1, plot2, plot3, ncol=1, nrow=3, heights=c(3,1,1))
 
 
 
-#### K-tau catch (correlated))
+#### K-tau catch (correlated)
 ```{r echo = FALSE, fig.width=10}
 ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_catch, color = factor(copula)))+
      geom_boxplot() 
 ```
 
-#### K-tau keep (correlated))
+#### K-tau keep (correlated)
 ```{r echo = FALSE, fig.width=10}
 ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_keep, color = factor(copula)))+
      geom_boxplot() 
 ```
 
-#### K-tau catch (independent))
+#### K-tau catch (independent)
 ```{r echo = FALSE, fig.width=10}
 ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_catch_ind, color = factor(copula)))+
      geom_boxplot() 
 ```
 
-#### K-tau keep (independent))
+#### K-tau keep (independent)
 ```{r echo = FALSE, fig.width=10}
 ggplot(hist_predictions_data3, aes(x=factor(prediction_year), y=k_tau_keep_ind, color = factor(copula)))+
      geom_boxplot() 
 ```
 
 
-#### K-tau catch vs. k-tau keep (clayton correlated))
+#### K-tau catch vs. k-tau keep (clayton correlated)
 ```{r echo = FALSE, fig.width=10}
 hist_predictions_data7<-hist_predictions_data6 %>% 
   dplyr::filter(copula=="_clayton")
