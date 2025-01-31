@@ -1,24 +1,18 @@
 
 args = commandArgs(trailingOnly=TRUE)
-
 options(future.globals.maxSize= 1000000000)
 
 # This is the modeling wrapper 
 
-# Steps in the process
 
-#2) Simulate the fishery under alternative regulations and a new catch-at-length distribution for summer flounder
-# a) Create new catch-at-length/catch-per-trip distributions for summer flounder based on population numbers at length. 
-# a) Calcualte angler welfare/fishing effort changes and changes in catch
-# Modeling wrapper test
-#profvis::profvis({
-#load needed packages and install if not currently installed.
+# Load needed packages and install if not currently installed.
 pkgs_to_use <- c("tidyr",  "magrittr", "tidyverse", "reshape2","splitstackshape",
                  "doBy","WriteXLS","Rcpp", "ggplot2","dplyr", "rlist","fitdistrplus",
                  "MASS",  "psych", "rgl","copula", "VineCopula","scales","univariateML",
                  "logspline","readr","data.table","conflicted", "readxl", "writexl", 
-                 "plyr" , "furrr", "profvis", "future", "Hmisc", "SDMTools", "tictoc", "rpudplus", 
-                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "rstatix", "ggpubr")
+                 "plyr" , "furrr", "profvis", "future", "Hmisc", "tictoc","purrr" ,
+                 "rmdformats", "prettydoc", "hrbrthemes", "tint", "tufte", "rstatix", "ggpubr", 
+                 "future.apply", "DescTools", "listenv")
 install.packages(setdiff(pkgs_to_use, rownames(installed.packages())))  
 lapply(pkgs_to_use, library, character.only = TRUE, quietly = TRUE)
 conflict_prefer("filter", "dplyr")
@@ -31,163 +25,428 @@ conflict_prefer("count", "dplyr")
 options(scipen = 10000, digits = 10)
 
 
-
-
-
-###Input data### 
+###Key input data### 
 #For the calibration model:
-#1)Directed trips for summer flounder and black sea bass by state, mode, area, and bi-monthly period. 
+#1)Directed trips for cod and haddock by state, mode, area, and bi-monthly period. 
 #This file also contains the baseline year regulations by species
+  #C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\directed trips GoM 2020.do
 
-#C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\directed trips GoM 2020.do
-#output: "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\directed trips and regulations 2010_2020_disaggregated.csv"
-
-#2)Observed catch (10,000) draws of catch per state, month, area, mode, and bi-monthly period. 
-#C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\calibration catch by period.do
-#output: "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\calibration catch per trip 2010_2020.csv"  
+#2)Catch in calibration year 2021: 3,000 draws (100 choice occasions * 30 draws of catch) of cod/haddock catch 
+#  per state, month, area, mode, and bi-monthly period.
+  #C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\calibration catch by period.do
 
 
-#3)Utility model parameters are hard-coded
-#4)Trip costs by state and mode, inflation adjusted to the baseline year
+input_data_cd <- "C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/newest_version/input_data/"
+input_code_cd <- "C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/newest_version/code/"
+output_data_cd<- "C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/newest_version/output_data/"
 
-
-
-n_drawz<-1000
-n_draws<-1000
-ndraws<-1000
+n_drawz<-100
+n_draws<-100
+ndraws<-100
 
 n_catch_draws<-30
+p_star_values_i<-list()
+p_star_values_i_y<-list()
 
-# Run the calibration files
+#yrz<- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021)
+yrz<- c(2021)
 
-p_star_values<-list()
-
-#yrz<- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020)
-#yrz<- c(2015, 2016, 2017, 2018, 2019, 2020)
-yrz<- c(2015, 2016, 2017, 2018, 2019, 2020)
-y=2020
 for (y in yrz){
+for (i in 1:100){
+    catch_data_all_split <- data.frame(read_csv(paste0(input_data_cd, "calib_catch_yr", y, "_draw", i, ".csv"), show_col_types = FALSE))
+    
   
-#Directed trips and regulations by period
-directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-directed_trips<-directed_trips %>% 
-  dplyr::mutate(dtrip=round(dtrip)) %>% 
-  dplyr::filter(dtrip!=0) %>% 
-  dplyr::filter(year==y)
-
-
-# Catch
-# Here input  catch-per-trip in by period
-catch_data_all = data.frame(read_csv("calibration catch per trip 2010_2020.csv", show_col_types = FALSE))
-catch_data_all<-catch_data_all %>% 
-  dplyr::filter(year==y)
-
-# Here input  catch-per-trip projections that are based on 2020
-#catch_data_all <-data.frame(read_csv("simulated_ind_catch.csv ", show_col_types = FALSE))
-
-# Below is a code that finds p* values which lead to projected harvest approximating actual harvest
-# Don't need to run this every time
-
-source("find pstar values 2010-2020.R")
-p_starz<-cbind(p_star_cod_variable, p_star_hadd_variable, cod_harvest_diff, hadd_harvest_diff)
-p_starz<-p_starz %>% 
-  as.data.frame() %>% 
-  dplyr::mutate(year=y)
-
-p_star_values[[y]] <-p_starz
-
+  #Directed trips and regulations by period
+  directed_trips<-data.frame(read_csv(paste0(input_data_cd, "directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)) %>% 
+    dplyr::mutate(dtrip=round(dtrip)) %>% dplyr::filter(dtrip!=0) %>% dplyr::filter(year==y)
+  
+  directed_trips_p <- directed_trips %>% 
+    mutate(period2 = as.character(period2)) %>% mutate(n_trips = floor(dtrip), n_draws = n_drawz) 
+  
+  period_vec <- directed_trips_p %>%dplyr::select(period2, n_draws, month) %>%  uncount(n_draws) 
+  
+  period_vec2 <- directed_trips %>% dplyr::select(period2, month, area, mode, st) %>% dplyr::rename(period=period2)
+  
+  period_vec4 <- directed_trips %>%  dplyr::select(period2, month, area, mode, st) 
+  
+  period_vec<-distinct(period_vec,.keep_all = TRUE)
+  
+  regs <- directed_trips_p %>% 
+    dplyr::select(period2, cod_bag, cod_min, hadd_bag, hadd_min, dtrip)
+  
+  regs_check <- directed_trips_p %>%   dplyr::select(period2, dtrip)
+  
+  # Run the p-star routine and save the output
+  source(paste0(input_code_cd,"find p-star values 2010-2020.R"))
+  
+  p_starz<-cbind(p_star_cod_variable, p_star_hadd_variable, cod_harvest_perc_diff, cod_harvest_diff, hadd_harvest_perc_diff, hadd_harvest_diff)
+  
+  p_starz<-p_starz %>% 
+    as.data.frame() %>% dplyr::mutate(draw=i, year=y)
+  
+  p_star_values_i[[i]] <-p_starz
+  
+  }
+  
+  p_star_values_all= list.stack(p_star_values_i, fill=TRUE)
+  p_star_values_i_y[[y]]= p_star_values_all
+  
 }
 
-p_star_values_all= list.stack(p_star_values, fill=TRUE)
-#saveRDS(p_star_values_all, file = "p_star_values_2010_2014.rds") 
-saveRDS(p_star_values_all, file = "p_star_values_2015_2020.rds") 
-
-p_stars_10_14 <- readRDS("p_star_values_2010_2014.rds")
-p_stars_15_20 <- readRDS("p_star_values_2015_2020.rds")
-
-p_stars_all_years<-rbind(p_stars_10_14, p_stars_15_20)
-saveRDS(p_stars_all_years, file = "p_stars_all_years.rds") 
+p_star_values_all_y= list.stack(p_star_values_i_y, fill=TRUE)
+saveRDS(p_star_values_all_y, file = paste0(input_data_cd, "p_star_values_2010_2021.rds")) 
 
 
 
 
-#once the p_star values are found, run the calibrations and save the output files
-yrz<- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020)
-#yrz<- c(2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020)
+# Once the p_star values are found, re-run the calibration and save the output including correlations 
+calibration_data_i<-list()
+costs_new_all_i<-list()
+all_ktaus_all_i<-list()
+
+calibration_data_i_y<-list()
+costs_new_all_i_y<-list()
+all_ktaus_all_i_y<-list()
+
+yrz<- c(2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021)
+yrz<- c(2021)
 
 for(y in yrz){
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::filter(year==y)
   
-  p_starz <- readRDS("p_stars_all_years.rds")
-  p_starz<- p_starz %>% 
-  dplyr::filter(year==y)
-
+  for (i in 1:2){
+    
+  directed_trips<-data.frame(read_csv(paste0(input_data_cd, "directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)) %>% 
+    dplyr::mutate(dtrip=round(dtrip)) %>% dplyr::filter(dtrip!=0) %>% dplyr::filter(year==y)
+  
+  dtrips1<-directed_trips %>%   dplyr::select(period2, dtrip, month)
+  
+  p_starz <- readRDS(paste0(input_data_cd, "p_star_values_2010_2021.rds")) %>%  dplyr::filter(year==y, draw==i)
+  
   p_star_cod_variable<- p_starz$p_star_cod_variable
   p_star_hadd_variable<- p_starz$p_star_hadd_variable
 
-  calibration_data_table_base<-list()
-  cost_files_all_base<-list()
-  keep_rel_pairz<-list()
-  keep_rel_pairz_month<-list()
+  catch_data_all = data.frame(read_csv(paste0(input_data_cd, "calib_catch_yr", y, "_draw", i, ".csv"), show_col_types = FALSE)) %>% 
+      dplyr::filter(year==y) 
+    
+  source(paste0(input_code_cd,"calibration2 2010-2021.R"))
 
-########################################
-###Run the calibration
-
-  for (x in 1:100){
-    
-    catch_data_all = data.frame(read_csv("calibration catch per trip 2010_2020_10k_draws.csv", show_col_types = FALSE))
-    catch_data_all<-catch_data_all %>% 
-      dplyr::filter(year==y)
-    
-    source("calibration 2010-2020.R")
-    
-    pds_new_all$draw<-x
-    calibration_data_table_base[[x]] <- pds_new_all
-    
-    costs_new_all$draw<-x
-    cost_files_all_base[[x]] <- costs_new_all
-    
-    keep_rel_pairs_annual$draw<-x
-    keep_rel_pairz[[x]] <- keep_rel_pairs_annual
-    
-    keep_rel_pairs_month_all$draw<-x
-    keep_rel_pairz_month[[x]] <- keep_rel_pairs_month_all
-    
+  # save the output  
+  saveRDS(aggregate_trip_data, file = paste0(output_data_cd, "calibration_data_", y,"draw", i, ".rds")) 
+  saveRDS(costs_new, file = paste0(output_data_cd, "costs_data_", y,"draw", i, ".rds")) 
+  saveRDS(all_ktaus, file = paste0(output_data_cd, "ktau_data_", y,"draw", i, ".rds")) 
+  
   }
   
-  period_to_month<-period_vec %>% 
-    dplyr::distinct(period2, month, .keep_all = TRUE)
-
-
-#save calibration output
-calibration_data_all= list.stack(calibration_data_table_base, fill=TRUE)
-calibration_data_all[is.na(calibration_data_all)] = 0
-calibration_data_all<-calibration_data_all %>% 
-  dplyr::mutate(period2=period) %>% 
-  dplyr::left_join(period_to_month, by="period2")
-saveRDS(calibration_data_all, file = paste0("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/calibration_data_all_", y, ".rds")) 
-
-for (x in 1:100){
-  cost_filez_all= cost_files_all_base[[x]]
-  cost_filez_all[is.na(cost_filez_all)] = 0
-  saveRDS(cost_filez_all, file = paste0("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/cost_files_all_draw_",y,"_", x,".rds")) 
 }
 
-keep_rel_pairz_all= list.stack(keep_rel_pairz, fill=TRUE)
-saveRDS(keep_rel_pairz_all, file = paste0("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/k_tau_values_calibration_", y,".rds")) 
-
-keep_rel_pairz_month_all= list.stack(keep_rel_pairz_month, fill=TRUE)
-saveRDS(keep_rel_pairz_month_all, file = paste0("C:/Users/andrew.carr-harris/Desktop/Git/welfare-model-GoM/calibration_data/k_tau_values_month_calibration_", y, ".rds")) 
 
 
+########################################
+####Decadal projections
+directed_trips<-data.frame(read_csv(paste0(input_data_cd, "directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)) %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0) %>% dplyr::filter(year==2021) %>% dplyr::select(-year)
+
+dtrips1<-directed_trips %>% dplyr::select(period2, dtrip, month)
+
+directed_trips_p <- directed_trips %>% 
+  mutate(period2 = as.character(period2)) %>% mutate(n_trips = floor(dtrip), n_draws = n_drawz) 
+
+period_vec <- directed_trips_p %>%  dplyr::select(period2, n_draws, month) %>%  uncount(n_draws) 
+
+period_vec2 <- directed_trips %>%
+  dplyr::select(period2, month, area, mode, st) %>% dplyr::rename(period=period2)
+
+period_vec4 <- directed_trips %>% dplyr::select(period2, month, area, mode, st) 
+
+period_vec<-distinct(period_vec,  .keep_all = TRUE)
+
+regs <- directed_trips_p %>% dplyr::select(period2,cod_bag, cod_min, hadd_bag, hadd_min, dtrip)
+
+regs_check <- directed_trips_p %>% dplyr::select(period2, dtrip)
+
+
+# Start the clock!
+ptm <- proc.time()
+
+k_taus<-list()
+output<-list()
+
+for (i in 1:2){
+  
+  p_starz <- readRDS(paste0(input_data_cd, "p_star_values_2010_2021.rds")) %>% 
+    dplyr::filter(year==2021, draw==i)
+  
+  p_star_cod_variable<- p_starz$p_star_cod_variable
+  p_star_hadd_variable<- p_starz$p_star_hadd_variable
+  
+  catch_data_all <- data.frame(read_csv(paste0(input_data_cd, "projection_catch_draw", i, ".csv"), show_col_types = FALSE))
+
+  source(paste0(input_code_cd,"projection function new2.R")) 
+  
+  k_taus[[i]]<-all_ktaus
+  output[[i]]<-sims_all
+  
 }
+
+ktau_all<-list.stack(k_taus, fill=TRUE)
+output_all<-list.stack(output, fill=TRUE)
+
+# Stop the clock
+proc.time() - ptm
+
+  
+  
+  
+
+########################################
+####Decadal projections
+
+# Start the clock!
+ptm <- proc.time()
+
+p_starz <- readRDS(paste0(input_data_cd, "p_star_values_2010_2021.rds"))
+p_starz<- p_starz %>% 
+  dplyr::filter(year==2021)
+
+p_star_cod_variable<- p_starz$p_star_cod_variable
+p_star_hadd_variable<- p_starz$p_star_hadd_variable
+
+p_star_cod <- p_star_cod_variable
+p_star_hadd<-p_star_hadd_variable
+
+directed_trips<-data.frame(read_csv(paste0(input_data_cd, "directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE))
+directed_trips<-directed_trips %>% 
+  dplyr::mutate(dtrip=round(dtrip)) %>% 
+  dplyr::filter(dtrip!=0) %>% 
+  dplyr::filter(year==2021) %>% 
+  dplyr::select(-year)
+
+
+# Set up an output file for the separately simulated within-season regulatory periods  
+directed_trips_p <- directed_trips %>% #subset(directed_trips, period == p)
+  mutate(period2 = as.character(period2)) %>% 
+  mutate(n_trips = floor(dtrip),
+         n_draws = n_drawz) 
+
+period_vec <- directed_trips_p %>% 
+  dplyr::select(period2, n_draws, month) %>% 
+  uncount(n_draws) 
+
+period_vec2 <- directed_trips %>%
+  dplyr::select(period2, month, area, mode, st) %>% 
+  dplyr::rename(period=period2)
+
+period_vec4 <- directed_trips %>%
+  dplyr::select(period2, month, area, mode, st) 
+
+period_vec<-distinct(period_vec,  .keep_all = TRUE)
+
+regs <- directed_trips_p %>% 
+  dplyr::select(period2,
+                cod_bag, cod_min, 
+                hadd_bag, hadd_min, dtrip)
+
+regs_check <- directed_trips_p %>% 
+  dplyr::select(period2, dtrip)
+
+
+
+catch_data_all <- data.frame(read_csv(paste0(input_data_cd, "projection catch per trip.csv"), show_col_types = FALSE))
+catch_data_all_split <- split(catch_data_all, catch_data_all$decade)
+rm(catch_data_all)
+
+
+{
+  ######## Clayton independent  ######## 
+  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
+  cop_name<-"_clayton"
+  
+  #independent or correlated = corr or ind
+  ind_or_corr<-"ind"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  
+  ######## Clayton correlated  ######## 
+  cop_name<-"_clayton"
+  
+  ind_or_corr<-"corr"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Gumbel independent  ######## 
+  cop_name<-"_gumbel"
+  
+  ind_or_corr<-"ind"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Gumbel correlated  ######## 
+  cop_name<-"_gumbel"
+  
+  ind_or_corr<-"corr"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Frank independent  ######## 
+  cop_name<-"_frank"
+  
+  ind_or_corr<-"ind"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Frank correlated  ######## 
+  cop_name<-"_frank"
+  
+  ind_or_corr<-"corr"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Plackett independent  ######## 
+  cop_name<-"_plackett"
+  
+  ind_or_corr<-"ind"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Plackett correlated  ######## 
+  cop_name<-"_plackett"
+  
+  ind_or_corr<-"corr"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Gaussian independent  ######## 
+  cop_name<-"_guassian"
+  
+  ind_or_corr<-"ind"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  ######## Gaussian correlated  ######## 
+  cop_name<-"_guassian"
+  
+  ind_or_corr<-"corr"
+  
+  source(paste0(input_code_cd,"projection function2.R")) 
+  
+  write_xlsx(predictions_all, paste0(output_data_cd, "decadal_proj_", cop_name, "_", ind_or_corr, ".xlsx")) #save the data 
+  write_xlsx(ktaus_all1, paste0(output_data_cd, "ktaus_", cop_name, "_", ind_or_corr, ".xlsx"))  #save the data
+  
+  
+  
+  ##################
+  
+  }
+
+# Stop the clock
+proc.time() - ptm
+
+
 
 ########################################
 #Projection evaluating baseline welfare in 2020. Do this by setting the bag limits = 0
+
+yrz<- c(2021)
+for(y in yrz){
+  directed_trips<-data.frame(read_csv(paste0(input_data_cd, "directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE))
+  directed_trips<-directed_trips %>% 
+    dplyr::mutate(dtrip=round(dtrip)) %>% 
+    dplyr::filter(dtrip!=0) %>% 
+    dplyr::filter(year==y) %>% 
+    dplyr::mutate()
+  
+  p_starz <- readRDS(paste0(input_data_cd, "p_star_values_2010_2021.rds"))
+  p_starz<- p_starz %>% 
+    dplyr::filter(year==y)
+  
+  p_star_cod_variable<- p_starz$p_star_cod_variable
+  p_star_hadd_variable<- p_starz$p_star_hadd_variable
+  
+  
+  ########################################
+  ###Run the calibration
+  
+  for (x in 1:100){
+    
+    catch_data_all = data.frame(read_csv(paste0(input_data_cd,"calibration catch per trip 2010_2020.csv"), show_col_types = FALSE))
+    catch_data_all<-catch_data_all %>% 
+      dplyr::filter(year==y) 
+    
+    source(paste0(input_code_cd,"calibration 2010-2020.R"))
+    
+    pds_new_all$draw<-x
+    calibration_data_table_base <- pds_new_all
+    calibration_data_table_base[is.na(calibration_data_table_base)] = 0
+    
+    period_to_month<-period_vec %>% 
+      dplyr::distinct(period2, month, .keep_all = TRUE)
+    
+    calibration_data_table_base<-calibration_data_table_base %>% 
+      dplyr::mutate(period2=period) %>% 
+      dplyr::left_join(period_to_month, by="period2")
+    
+    saveRDS(calibration_data_table_base, file = paste0(output_data_cd, "calibration_data_", y,"_",x,".rds")) 
+    
+    costs_new_all$draw<-x
+    cost_files_all_base <- costs_new_all
+    saveRDS(cost_files_all_base, file = paste0(output_data_cd, "cost_files_", y,"_",x,".rds")) 
+    
+    keep_rel_pairs_annual$draw<-x
+    keep_rel_pairz <- keep_rel_pairs_annual
+    saveRDS(keep_rel_pairz, file = paste0(output_data_cd, "k_tau_annual", y,"_",x,".rds")) 
+    
+    keep_rel_pairs_month_all$draw<-x
+    keep_rel_pairz_month <- keep_rel_pairs_month_all
+    saveRDS(keep_rel_pairz_month, file = paste0(output_data_cd, "k_tau_month", y,"_",x,".rds")) 
+    
+  }
+  
+  
+}
+
+
+
+
+
+
 # p_starz <- readRDS("p_stars_all_years.rds")
 # p_starz<- p_starz %>% 
 #   dplyr::filter(year==2020)
@@ -490,35 +749,35 @@ saveRDS(keep_rel_pairz_month_all, file = paste0("C:/Users/andrew.carr-harris/Des
 ptm <- proc.time()
 
 
-  ################## Clayton independent
-  
-  #choose which copula data to use. cop_name =_clayton,  _gumbel, _frank, _plackett, _gaussian
-  cop_name<-"_clayton"
-  
-  #independent or correlated = corr or ind
-  ind_or_corr<-"ind"
-  
-  source("projection function2-historical.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_historical_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  
-  ################## Clayton corr
-  
-  #choose which copula data to use. cop_name =_clayton,  _gumbel, _frank, _plackett, _gaussian
-  cop_name<-"_clayton"
-  
-  #independent or correlated = corr or ind
-  ind_or_corr<-"corr"
-  
-  source("projection function2-historical.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_historical_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  {
+################## Clayton independent
+
+#choose which copula data to use. cop_name =_clayton,  _gumbel, _frank, _plackett, _gaussian
+cop_name<-"_clayton"
+
+#independent or correlated = corr or ind
+ind_or_corr<-"ind"
+
+source("projection function2-historical.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_historical_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+
+
+################## Clayton corr
+
+#choose which copula data to use. cop_name =_clayton,  _gumbel, _frank, _plackett, _gaussian
+cop_name<-"_clayton"
+
+#independent or correlated = corr or ind
+ind_or_corr<-"corr"
+
+source("projection function2-historical.R")
+
+#save the data 
+write_xlsx(predictions_all,paste0("predictions_historical_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
+
+{
   ################## Gumbel ind
   
   #choose which copula data to use. cop_name =_clayton,  _gumbel, _frank, _plackett, _gaussian
@@ -636,241 +895,8 @@ ptm <- proc.time()
 # Stop the clock
 proc.time() - ptm
 
-########################################
-####Decadal projections
-
-# Start the clock!
-ptm <- proc.time()
 
 
-p_starz <- readRDS("p_stars_all_years.rds")
-p_starz<- p_starz %>% 
-  dplyr::filter(year==2020)
-
-p_star_cod_variable<- p_starz$p_star_cod_variable
-p_star_hadd_variable<- p_starz$p_star_hadd_variable
-
-directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-directed_trips<-directed_trips %>% 
-  dplyr::mutate(dtrip=round(dtrip)) %>% 
-  dplyr::filter(year==2020) %>% 
-  dplyr::filter(dtrip!=0) %>% 
-  dplyr::select(-year)
-
-{
-  ################## Clayton independent
-
-  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
-  cop_name<-"_clayton"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"ind"
-
-  
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  
-  ################## Clayton correlated
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
-  cop_name<-"_clayton"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"corr"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  ################## Gumbel independent
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
-  cop_name<-"_gumbel"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"ind"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  ################## Gumbel correlated
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
-  cop_name<-"_gumbel"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"corr"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  ################## Frank independent
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, clayton
-  cop_name<-"_frank"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"ind"
-  
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  
-  ##################Frank correlated
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use cop_name = _gumbel, _frank, clayton
-  cop_name<-"_frank"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"corr"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-
-  ################## Plackett independent
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, _clayton, _plackett
-  cop_name<-"_plackett"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"ind"
-  
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-
-  ################## Plackett correlated
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, _clayton, _plackett
-  cop_name<-"_plackett"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"corr"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-
-  ##################Gaussian independent
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, _clayton, _plackett, _gaussian
-  cop_name<-"_gaussian"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"ind"
-  
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-  
-  ################## Gaussian correlated
-  directed_trips<-data.frame(read_csv("directed trips and regulations 2010_2020.csv", show_col_types = FALSE))
-  directed_trips<-directed_trips %>% 
-    dplyr::mutate(dtrip=round(dtrip)) %>% 
-    dplyr::filter(year==2020) %>% 
-    dplyr::filter(dtrip!=0) %>% 
-    dplyr::select(-year)
-  
-  
-  #choose which copula data to use. cop_name = _gumbel, _frank, _clayton, _plackett, _gaussian
-  cop_name<-"_gaussian"
-  
-  #independat or correlations = corr or ind
-  ind_or_corr<-"corr"
-
-  source("projection function2.R")
-  
-  #save the data 
-  write_xlsx(predictions_all,paste0("predictions_v2_", cop_name, "_", ind_or_corr, ".xlsx")) 
-  
-
-
-  ##################
-  
-}
-
-# Stop the clock
-proc.time() - ptm
 
 
 

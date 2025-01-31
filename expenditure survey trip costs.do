@@ -3,7 +3,7 @@
 
 *Enter a directory with the expenditure survey data 
 *cd "C:\Users\andrew.carr-harris\Desktop\Fluke_MSE\MRIP_data"
-cd "\\net.nefsc.noaa.gov\aharris\fluke_MSE\input_data"
+cd "Z:\fluke_MSE\input_data"
 u "atl_states_2017_expsurvey.dta", clear
 renvarlab *, lower
 
@@ -84,6 +84,15 @@ replace st_error=sqrt(st_error)
 global costs
 
 *Adjust for inflation (https://www.bls.gov/data/inflation_calculator.htm)
+local vals 0.89  0.91 0.93 0.95 0.96 0.96 0.98 1 1.02 1.04 1.06
+foreach v of local vals{
+gen tot_exp2= total_exp*`v'
+svy: mean tot_exp2  if inlist(st,23, 33, 25) & mode1!="sh"
+drop tot_exp2
+}
+
+
+
 replace total_exp = total_exp*1.02
 
 encode mode1, gen(mode2)
