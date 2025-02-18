@@ -38,6 +38,55 @@ Each tab contains different projected fishery outcomes across copula models for 
 ```{r echo = FALSE,  fig.width=10}
 output<-read_excel(paste0(output_data_cd,"model_output_orig.xlsx"))  
 
+base_output<-read_excel(paste0(output_data_cd,"model_output_orig.xlsx"))  
+
+base_output<-base_output %>% 
+  dplyr::select(month, mode, area, state, draw, matches("base"))
+
+base_output <- base_output %>%
+  rename_with(~ gsub("_(cat)", "\\1", .x), matches("_cat")) %>%
+  rename_with(~ gsub("_(keep)", "\\1", .x), matches("_keep")) %>%
+  rename_with(~ gsub("_(rel)", "\\1", .x), matches("_rel")) %>%
+  rename_with(~ gsub("_(alt)", "\\1", .x), matches("_alt")) %>% 
+  rename_with(~ gsub("Gaussian", "gaussian", .x), contains("Gaussian")) %>% 
+  rename_with(~ gsub("base_", "", .x), contains("base_"))
+
+
+# Reshaping to long format
+base_output_long <- base_output %>%
+  pivot_longer(
+    cols =  starts_with("codkeep") | starts_with("codrel") | starts_with("haddkeep") |
+      starts_with("haddrel") | starts_with("haddcat") | starts_with("codcat") | starts_with("ntrips"),  # Select columns to reshape
+    names_to = c(".value", "correlation", "copula", "decade"), 
+    names_pattern = "([a-z]+)_([a-z]+)_([a-z]+)([12345678])"  
+  )
+
+base_output_summarized <- base_output_long %>%
+  group_by(draw, copula, correlation, decade) %>%
+  summarise(across(c(codcat, codkeep, codrel, haddcat, haddkeep, haddrel, ntrips), \(x) sum(x, na.rm = TRUE)),.groups="drop") %>% 
+  dplyr::filter(copula=="clayton", correlation=="corr", decade==1) %>% 
+  dplyr::mutate(copula="baseline", correlation="baseline", decade=0)
+
+  
+base_output_summarized <- base_output_summarized %>%
+  dplyr::mutate(codcattrip=codcat/ntrips, 
+                codkeeptrip=codkeep/ntrips, 
+                haddcattrip=haddcat/ntrips, 
+                haddkeeptrip=haddkeep/ntrips) %>% 
+  rename_with(~ paste0(.x, "_corr"), c(codcat, codkeep, codrel, haddcat, haddkeep, haddrel, ntrips, 
+                                       codcattrip, codkeeptrip, haddcattrip, haddkeeptrip)) %>% 
+    dplyr::mutate(codcat_ind= codcat_corr, 
+                  codkeep_ind =codkeep_corr, 
+                  codrel_ind =codrel_corr, 
+                  haddcat_ind= haddcat_corr, 
+                  haddkeep_ind= haddkeep_corr, 
+                  haddrel_ind =haddrel_corr, 
+                  ntrips_ind= ntrips_corr, 
+                  codcattrip_ind=codcattrip_corr,
+                  codkeeptrip_ind=codkeeptrip_corr,
+                  haddcattrip_ind=haddcattrip_corr,
+                  haddkeeptrip_ind=haddkeeptrip_corr)  
+
 #Output by year
 output <- output %>% dplyr::select(-matches("base"))
 output <- output %>%
@@ -67,8 +116,8 @@ output_summarized <- output_summarized %>%
                 codkeeptrip=codkeep/ntripsalt, 
                 haddcattrip=haddcat/ntripsalt, 
                 haddkeeptrip=haddkeep/ntripsalt, 
-                cvtrip=cv/ntripsalt)
-
+                cvtrip=cv/ntripsalt) 
+  
 
 ## What to plot:
   #cod keep trip/total
@@ -110,6 +159,7 @@ output_summarized <- output_summarized_corr %>%
                 diff_haddkeeptrip= haddkeeptrip_corr- haddkeeptrip_ind,
                 diff_cvtrip=cvtrip_corr- cvtrip_ind)
 
+output_summarized<-rbind.fill(output_summarized, base_output_summarized)
 ```
 <div style="margin-bottom:50px;">
 </div>
@@ -259,3 +309,275 @@ ggplot(output_summarized, aes(x=factor(decade), y=diff_haddkeeptrip, color = fac
 ### {-}
 
 ### Decadal projections (2025-02-14) {.tabset}
+```{r echo = FALSE,  fig.width=10}
+output<-read_excel(paste0(output_data_cd,"model_output_2-14-25.xlsx"))  
+
+base_output<-read_excel(paste0(output_data_cd,"model_output_2-14-25.xlsx"))  
+
+base_output<-base_output %>% 
+  dplyr::select(month, mode, area, state, draw, matches("base"))
+
+base_output <- base_output %>%
+  rename_with(~ gsub("_(cat)", "\\1", .x), matches("_cat")) %>%
+  rename_with(~ gsub("_(keep)", "\\1", .x), matches("_keep")) %>%
+  rename_with(~ gsub("_(rel)", "\\1", .x), matches("_rel")) %>%
+  rename_with(~ gsub("_(alt)", "\\1", .x), matches("_alt")) %>% 
+  rename_with(~ gsub("Gaussian", "gaussian", .x), contains("Gaussian")) %>% 
+  rename_with(~ gsub("base_", "", .x), contains("base_"))
+
+
+# Reshaping to long format
+base_output_long <- base_output %>%
+  pivot_longer(
+    cols =  starts_with("codkeep") | starts_with("codrel") | starts_with("haddkeep") |
+      starts_with("haddrel") | starts_with("haddcat") | starts_with("codcat") | starts_with("ntrips"),  # Select columns to reshape
+    names_to = c(".value", "correlation", "copula", "decade"), 
+    names_pattern = "([a-z]+)_([a-z]+)_([a-z]+)([12345678])"  
+  )
+
+base_output_summarized <- base_output_long %>%
+  group_by(draw, copula, correlation, decade) %>%
+  summarise(across(c(codcat, codkeep, codrel, haddcat, haddkeep, haddrel, ntrips), \(x) sum(x, na.rm = TRUE)),.groups="drop") %>% 
+  dplyr::filter(copula=="clayton", correlation=="corr", decade==1) %>% 
+  dplyr::mutate(copula="baseline", correlation="baseline", decade=0)
+
+  
+base_output_summarized <- base_output_summarized %>%
+  dplyr::mutate(codcattrip=codcat/ntrips, 
+                codkeeptrip=codkeep/ntrips, 
+                haddcattrip=haddcat/ntrips, 
+                haddkeeptrip=haddkeep/ntrips) %>% 
+  rename_with(~ paste0(.x, "_corr"), c(codcat, codkeep, codrel, haddcat, haddkeep, haddrel, ntrips, 
+                                       codcattrip, codkeeptrip, haddcattrip, haddkeeptrip)) %>% 
+    dplyr::mutate(codcat_ind= codcat_corr, 
+                  codkeep_ind =codkeep_corr, 
+                  codrel_ind =codrel_corr, 
+                  haddcat_ind= haddcat_corr, 
+                  haddkeep_ind= haddkeep_corr, 
+                  haddrel_ind =haddrel_corr, 
+                  ntrips_ind= ntrips_corr, 
+                  codcattrip_ind=codcattrip_corr,
+                  codkeeptrip_ind=codkeeptrip_corr,
+                  haddcattrip_ind=haddcattrip_corr,
+                  haddkeeptrip_ind=haddkeeptrip_corr)  
+
+#Output by year
+output <- output %>% dplyr::select(-matches("base"))
+output <- output %>%
+  rename_with(~ gsub("_(cat)", "\\1", .x), matches("_cat")) %>%
+  rename_with(~ gsub("_(keep)", "\\1", .x), matches("_keep")) %>%
+  rename_with(~ gsub("_(rel)", "\\1", .x), matches("_rel")) %>%
+  rename_with(~ gsub("_(alt)", "\\1", .x), matches("_alt")) %>% 
+  rename_with(~ gsub("Gaussian", "gaussian", .x), contains("Gaussian"))
+
+# Reshaping to long format
+output_long <- output %>%
+  pivot_longer(
+    cols = starts_with("cv") | starts_with("codkeep") | starts_with("codrel") | starts_with("haddkeep") |
+           starts_with("haddrel") | starts_with("haddcat") | starts_with("codcat") | starts_with("ntripsalt"),  # Select columns to reshape
+    names_to = c(".value", "correlation", "copula", "decade"), 
+    names_pattern = "([a-z]+)_([a-z]+)_([a-z]+)([12345678])"  
+  )
+
+
+# Summing selected variables by grouping variables
+output_summarized <- output_long %>%
+  group_by(draw, copula, correlation, decade) %>%
+  summarise(across(c(codcat, codkeep, codrel, cv, haddcat, haddkeep, haddrel, ntripsalt), \(x) sum(x, na.rm = TRUE)), .groups="drop")
+
+output_summarized <- output_summarized %>%
+  dplyr::mutate(codcattrip=codcat/ntripsalt, 
+                codkeeptrip=codkeep/ntripsalt, 
+                haddcattrip=haddcat/ntripsalt, 
+                haddkeeptrip=haddkeep/ntripsalt, 
+                cvtrip=cv/ntripsalt) 
+  
+
+## What to plot:
+  #cod keep trip/total
+  #hadd keep trip/total 
+  #cod catch trip/total
+  #hadd catch trip/total 
+  #cv trip/total
+
+#By decade and copula
+output_summarized_corr<-output_summarized %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::select(-correlation)
+
+output_summarized_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(codcat, codkeep, codrel, cv, haddcat, haddkeep, haddrel, ntripsalt, 
+                                      codcattrip, codkeeptrip, haddcattrip, haddkeeptrip, cvtrip))
+
+output_summarized_ind<-output_summarized %>% 
+  dplyr::filter(correlation=="ind") %>% 
+  dplyr::select(-correlation)
+
+output_summarized_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(codcat, codkeep, codrel, cv, haddcat, haddkeep, haddrel, ntripsalt, 
+                                      codcattrip, codkeeptrip, haddcattrip, haddkeeptrip, cvtrip))
+
+output_summarized <- output_summarized_corr %>% 
+  dplyr::left_join(output_summarized_ind, by=c("draw", "copula","decade" )) %>% 
+  dplyr::mutate(diff_codcat= codcat_corr-codcat_ind,
+                diff_codkeep=  codkeep_corr- codkeep_ind,
+                diff_codrel=  codrel_corr- codrel_ind,
+                diff_cv=  cv_corr- cv_ind,
+                diff_haddcat=  haddcat_corr- haddcat_ind,
+                diff_haddkeep= haddkeep_corr- haddkeep_ind,
+                diff_haddrel= haddrel_corr- haddrel_ind,
+                diff_ntripsalt= ntripsalt_corr- ntripsalt_ind,
+                diff_codcattrip=  codcattrip_corr- codcattrip_ind,
+                diff_codkeeptrip= codkeeptrip_corr- codkeeptrip_ind,
+                diff_haddcattrip= haddcattrip_corr- haddcattrip_ind,
+                diff_haddkeeptrip= haddkeeptrip_corr- haddkeeptrip_ind,
+                diff_cvtrip=cvtrip_corr- cvtrip_ind)
+
+output_summarized<-rbind.fill(output_summarized, base_output_summarized)
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### CV per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=cvtrip_corr, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod catch per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=codcattrip_corr, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=codkeeptrip_corr, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock catch per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=haddcattrip_corr, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock keep per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=haddkeeptrip_corr, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### CV per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=cvtrip_ind, color = factor(copula)))+
+  geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod catch per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=codcattrip_ind, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=codkeeptrip_ind, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock catch per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=haddcattrip_ind, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock keep per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=haddkeeptrip_ind, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+#### Diff. CV per trip (corr.-ind.)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=diff_cvtrip, color = factor(copula)))+
+  geom_boxplot() 
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Diff. cod catch per trip (corr.-ind.)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=diff_codcattrip, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Diff. cod keep per trip (corr.-ind.)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=diff_codkeeptrip, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Diff. haddock catch per trip (corr.-ind.)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=diff_haddcattrip, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### Diff. haddock keep per trip (corr.-ind.)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized, aes(x=factor(decade), y=diff_haddkeeptrip, color = factor(copula)))+
+  geom_boxplot() 
+
+```
+### {-}
