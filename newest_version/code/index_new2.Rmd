@@ -282,7 +282,7 @@ head(final_result)
 ```
 
 ### {-}
-### Decadal projections (2025-04-17) {.tabset}
+### Decadal projections (catch data from 2025-04-17) {.tabset}
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. 
 ```{r echo = FALSE,  fig.width=10}
 #historical catch 
@@ -500,6 +500,213 @@ ggplot(output_summarized_ind, aes(x=factor(year), y=haddcattrip, color = factor(
   
 ggplot(output_summarized_ind, aes(x=factor(year), y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() 
+
+```
+
+### {-}
+### Decadal projections for Geret (catch data from 2025-04-17) {.tabset}
+Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. 
+```{r echo = FALSE,  fig.width=10}
+# Filter out decade == 0
+output_summarized_corr_filtered <- output_summarized_corr %>% filter(decade != 0)
+output_summarized_ind_filtered <- output_summarized_ind %>% filter(decade != 0)
+
+# Find global y-axis limits for both datasets
+y_min_cv <- min(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
+y_max_cv <- max(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
+
+
+
+#Baseline period average catch-per-trips 
+output_summarized_baseline_filtered<- output_summarized_corr %>% filter(copula == "baseline" & decade==0)
+
+output_summarized_baseline_filtered<- output_summarized_baseline_filtered %>%
+  group_by(year) %>%
+  summarise(across(c(codcat, codkeep, codrel, haddcat, haddkeep, haddrel, ntrips), \(x) mean(x, na.rm = TRUE)), .groups="drop")
+
+output_summarized_baseline_filtered2<- output_summarized_corr %>% filter(copula == "baseline" & is.na(decade))
+
+output_summarized_baseline_filtered2 <- output_summarized_baseline_filtered2 %>%
+  group_by(year) %>%
+  summarise(across(c(tot_cat_cod, tot_cat_hadd, dtrip), \(x) mean(x, na.rm = TRUE)), .groups="drop") %>% 
+  rename(codcat=tot_cat_cod, haddcat=tot_cat_hadd, ntrips=dtrip)
+
+output_summarized_baseline_filtered2<-bind_rows(output_summarized_baseline_filtered2, output_summarized_baseline_filtered)
+
+historical_average_cod_catch<-sum(output_summarized_baseline_filtered2$codcat)/sum(output_summarized_baseline_filtered2$ntrips)
+historical_average_hadd_catch<-sum(output_summarized_baseline_filtered2$haddcat)/sum(output_summarized_baseline_filtered2$ntrips)
+
+output_summarized_corr_filtered2<-output_summarized_corr %>% filter(!is.na(decade) & decade!=0)
+output_summarized_ind_filtered2<-output_summarized_ind %>% filter(!is.na(decade) & decade!=0)
+
+# Relabel decades
+output_summarized_corr_filtered2 <- output_summarized_corr_filtered2 %>%
+  mutate(decade_label = paste0("Decade ", decade))
+
+output_summarized_ind_filtered2 <- output_summarized_ind_filtered2 %>%
+  mutate(decade_label = paste0("Decade ", decade))
+
+
+# Create a new row for the historical average point
+historical_point_cod <- data.frame(
+  decade_label = "Average 2011-2021",
+  codcattrip = historical_average_cod_catch
+)
+historical_point_hadd <- data.frame(
+  decade_label = "Average 2011-2021",
+  haddcattrip = historical_average_hadd_catch
+)
+
+y_min_cod_cat <- min(c(output_summarized_corr_filtered$codcattrip, output_summarized_ind_filtered$codcattrip, historical_point_cod$codcattrip), na.rm = TRUE)
+y_max_cod_cat <- max(c(output_summarized_corr_filtered$codcattrip, output_summarized_ind_filtered$codcattrip, historical_point_cod$codcattrip), na.rm = TRUE)
+
+
+y_min_hadd_cat <- min(c(output_summarized_corr_filtered$haddcattrip, output_summarized_ind_filtered$haddcattrip,historical_point_hadd$haddcattrip ), na.rm = TRUE)
+y_max_hadd_cat <- max(c(output_summarized_corr_filtered$haddcattrip, output_summarized_ind_filtered$haddcattrip ,historical_point_hadd$haddcattrip), na.rm = TRUE)
+
+y_min_cod_keep <- min(c(output_summarized_corr_filtered2$codkeeptrip, output_summarized_ind_filtered2$codkeeptrip), na.rm = TRUE)
+y_max_cod_keep <- max(c(output_summarized_corr_filtered2$codkeeptrip, output_summarized_ind_filtered2$codkeeptrip), na.rm = TRUE)
+
+y_min_hadd_keep <- min(c(output_summarized_corr_filtered2$haddkeeptrip, output_summarized_ind_filtered2$haddkeeptrip), na.rm = TRUE)
+y_max_hadd_keep <- max(c(output_summarized_corr_filtered2$haddkeeptrip, output_summarized_ind_filtered2$haddkeeptrip), na.rm = TRUE)
+
+
+```
+
+#### CV per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cv, y_max_cv)) +
+  labs(x = "Decade", y = "Compensating variation per trip ($)")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### CV per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cv, y_max_cv))+
+  labs(x = "Decade", y = "Compensating variation per trip ($)")
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod catch per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+#ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=codcattrip, color = factor(copula)))+
+#  geom_boxplot() 
+ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = codcattrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
+  geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
+             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "", y = "Cod catch per trip")
+
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+
+#### cod catch per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+#ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=codcattrip, color = factor(copula)))+
+#  geom_boxplot() 
+
+ggplot(output_summarized_ind_filtered2, aes(x = decade_label, y = codcattrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
+  geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
+             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "Period", y = "Cod catch per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock catch per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+#ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=haddcattrip, color = factor(copula)))+
+#  geom_boxplot() 
+ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = haddcattrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
+  geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
+             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "", y = "Haddock catch per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock catch per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+#ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=haddcattrip, color = factor(copula)))+
+#  geom_boxplot() 
+
+ggplot(output_summarized_ind_filtered2, aes(x = decade_label, y = haddcattrip, color = factor(copula))) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
+  geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
+             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "", y = "Haddock catch per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=codkeeptrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep)) +
+  labs(x = "Decade", y = "Cod harvest per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### cod keep per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=codkeeptrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep)) +
+  labs(x = "Decade", y = "Cod harvest per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock keep per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=haddkeeptrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep)) +
+  labs(x = "Decade", y = "Haddock harvest per trip")
+
+```
+<div style="margin-bottom:50px;">
+</div>
+
+#### haddock keep per trip (independent)
+```{r echo = FALSE, fig.width=10}
+  
+ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=haddkeeptrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep)) +
+  labs(x = "Decade", y = "Haddock harvest per trip")
 
 ```
 
