@@ -601,12 +601,12 @@ ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cvtrip, color
   
 #ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=codcattrip, color = factor(copula)))+
 #  geom_boxplot() 
-ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = codcattrip, color = factor(copula))) +
+ggplot(output_summarized_corr_filtered2, aes(x = factor(decade), y = codcattrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
-  geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
-             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
-  labs(x = "", y = "Cod catch per trip")
+   coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
+  # geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
+  #            color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "Decade", y = "Cod catch per trip")
 
 
 ```
@@ -620,12 +620,12 @@ ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = codcattrip, c
 #ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=codcattrip, color = factor(copula)))+
 #  geom_boxplot() 
 
-ggplot(output_summarized_ind_filtered2, aes(x = decade_label, y = codcattrip, color = factor(copula))) +
+ggplot(output_summarized_ind_filtered2, aes(x = factor(decade), y = codcattrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
-  geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
-             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
-  labs(x = "Period", y = "Cod catch per trip")
+   coord_cartesian(ylim = c(y_min_cod_cat, y_max_cod_cat)) +
+  # geom_point(data = historical_point_cod, aes(x = decade_label, y = codcattrip), 
+  #            color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "Decade", y = "Cod catch per trip")
 
 ```
 <div style="margin-bottom:50px;">
@@ -636,12 +636,12 @@ ggplot(output_summarized_ind_filtered2, aes(x = decade_label, y = codcattrip, co
   
 #ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y=haddcattrip, color = factor(copula)))+
 #  geom_boxplot() 
-ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = haddcattrip, color = factor(copula))) +
+ggplot(output_summarized_corr_filtered2, aes(x=factor(decade), y = haddcattrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
-  geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
-             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
-  labs(x = "", y = "Haddock catch per trip")
+   coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
+  # geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
+  #            color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "Decade", y = "Haddock catch per trip")
 
 ```
 <div style="margin-bottom:50px;">
@@ -653,12 +653,12 @@ ggplot(output_summarized_corr_filtered2, aes(x = decade_label, y = haddcattrip, 
 #ggplot(output_summarized_ind_filtered2, aes(x=factor(decade), y=haddcattrip, color = factor(copula)))+
 #  geom_boxplot() 
 
-ggplot(output_summarized_ind_filtered2, aes(x = decade_label, y = haddcattrip, color = factor(copula))) +
+ggplot(output_summarized_ind_filtered2, aes(x = factor(decade), y = haddcattrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
-  geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
-             color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
-  labs(x = "", y = "Haddock catch per trip")
+   coord_cartesian(ylim = c(y_min_hadd_cat, y_max_hadd_cat)) +
+  # geom_point(data = historical_point_hadd, aes(x = decade_label, y = haddcattrip), 
+  #            color = "black", shape = 18, size = 3, inherit.aes = FALSE) +
+  labs(x = "Decade", y = "Haddock catch per trip")
 
 ```
 <div style="margin-bottom:50px;">
