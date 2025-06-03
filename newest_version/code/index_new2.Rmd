@@ -234,7 +234,7 @@ y_min_cod_release <- min(c(output_summarized_corr$codreltrip,
 y_max_cod_release <- max(c(output_summarized_corr$codreltrip,
                          output_summarized_ind$codreltrip), na.rm = TRUE)
 
-y_min_cod_release_choice <- min(c(output_summarized_corr_filtered$codrelchoice,
+y_min_cod_release_choice <- min(c(output_summarized_corr$codrelchoice,
                          output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
 y_max_cod_release_choice <- max(c(output_summarized_corr_filtered$codrelchoice,
                          output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
