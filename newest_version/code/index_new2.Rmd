@@ -230,14 +230,26 @@ y_max_cod_keep_choice <- max(c(output_summarized_corr$codkeepchoice,
 
 # Find global y-axis limits for both datasets - cod_release
 y_min_cod_release <- min(c(output_summarized_corr$codreltrip,
-                         output_summarized_ind$codreltrip))
+                         output_summarized_ind$codreltrip), na.rm = TRUE)
 y_max_cod_release <- max(c(output_summarized_corr$codreltrip,
-                         output_summarized_ind$codreltrip), na.rm = FALSE)
+                         output_summarized_ind$codreltrip), na.rm = TRUE)
 
-y_min_cod_release_choice <- min(c(output_summarized_corr$codrelchoice,
-                         output_summarized_ind$codrelchoice))
-y_max_cod_release_choice <- max(c(output_summarized_corr$codrelchoice,
-                         output_summarized_ind$codrelchoice), na.rm = FALSE)
+y_min_cod_release_choice <- min(c(output_summarized_corr_filtered$codrelchoice,
+                         output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
+y_max_cod_release_choice <- max(c(output_summarized_corr_filtered$codrelchoice,
+                         output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
+
+
+y_min_cod_cat_choice <- min(c(output_summarized_corr_filtered$codcatchoice,
+                         output_summarized_ind_filtered$codcatchoice), na.rm = TRUE)
+y_max_cod_cat_choice <- max(c(output_summarized_corr_filtered$codcatchoice,
+                         output_summarized_ind_filtered$codcatchoice), na.rm = TRUE)
+
+y_min_hadd_cat_choice <- min(c(output_summarized_corr_filtered$haddcatchoice,
+                         output_summarized_ind_filtered$haddcatchoice), na.rm = TRUE)
+y_max_hadd_cat_choice <- max(c(output_summarized_corr_filtered$haddcatchoice,
+                         output_summarized_ind_filtered$haddcatchoice), na.rm = TRUE)
+
 
 #ktau data 
 ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_5-14-25.xlsx"))
@@ -559,6 +571,7 @@ plot_data <- output_summarized_corr %>%
 
 ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_cat_choice, y_max_cod_cat_choice))+
   labs(x = "Period", y = "Cod catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -571,6 +584,7 @@ plot_data <- output_summarized_ind %>%
 
 ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_cat_choice, y_max_cod_cat_choice))+
   labs(x = "Period", y = "Cod catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -639,6 +653,7 @@ plot_data <- output_summarized_corr %>%
 
 ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_cat_choice, y_max_hadd_cat_choice))+
   labs(x = "Period", y = "Haddock catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -651,6 +666,7 @@ plot_data <- output_summarized_ind %>%
 
 ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_cat_choice, y_max_hadd_cat_choice))+
   labs(x = "Period", y = "Haddock catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
