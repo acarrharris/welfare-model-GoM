@@ -95,7 +95,13 @@ Each tab contains different projected fishery outcomes across copula models for 
 ```{r echo = FALSE,  fig.width=10}
 #By decade and copula - coast
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_5-14-25_reformat_coast.rds"))  %>%
-  mutate(copula = replace_na(copula, "baseline")) 
+  mutate(copula = replace_na(copula, "baseline")) %>% 
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 
 output_summarized_corr<-output_summarized1 %>% 
   dplyr::filter(correlation=="corr" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
@@ -183,11 +189,55 @@ y_max_cv_total <- max(c(output_summarized_corr_filtered$cv,
                          output_summarized_ind_filtered$cv), na.rm = TRUE)
 
 # Find global y-axis limits for both datasets - ntrips
-y_min_ntrips <- min(c(output_summarized_corr_filtered$ntrips,
-                         output_summarized_ind_filtered$ntrips), na.rm = TRUE)
-y_max_ntrips <- max(c(output_summarized_corr_filtered$ntrips,
-                         output_summarized_ind_filtered$ntrips), na.rm = TRUE)
+y_min_ntrips <- min(c(output_summarized_corr$ntrips,
+                         output_summarized_ind$ntrips), na.rm = TRUE)
+y_max_ntrips <- max(c(output_summarized_corr$ntrips,
+                         output_summarized_ind$ntrips), na.rm = TRUE)
 
+# Find global y-axis limits for both datasets - hadd keep
+y_min_hadd_keep <- min(c(output_summarized_corr$haddkeeptrip,
+                         output_summarized_ind$haddkeeptrip), na.rm = TRUE)
+y_max_hadd_keep <- max(c(output_summarized_corr$haddkeeptrip,
+                         output_summarized_ind$haddkeeptrip), na.rm = TRUE)
+
+y_min_hadd_keep_choice <- min(c(output_summarized_corr$haddkeepchoice,
+                         output_summarized_ind$haddkeepchoice), na.rm = TRUE)
+y_max_hadd_keep_choice <- max(c(output_summarized_corr$haddkeepchoice,
+                         output_summarized_ind$haddkeepchoice), na.rm = TRUE)
+
+# Find global y-axis limits for both datasets - hadd_release
+y_min_hadd_release <- min(c(output_summarized_corr$haddreltrip,
+                         output_summarized_ind$haddreltrip), na.rm = TRUE)
+y_max_hadd_release <- max(c(output_summarized_corr$haddreltrip,
+                         output_summarized_ind$haddreltrip), na.rm = TRUE)
+
+y_min_hadd_release_choice <- min(c(output_summarized_corr$haddrelchoice,
+                         output_summarized_ind$haddrelchoice), na.rm = TRUE)
+y_max_hadd_release_choice <- max(c(output_summarized_corr$haddrelchoice,
+                         output_summarized_ind$haddrelchoice), na.rm = TRUE)
+
+# Find global y-axis limits for both datasets - cod keep
+y_min_cod_keep <- min(c(output_summarized_corr$codkeeptrip,
+                         output_summarized_ind$codkeeptrip), na.rm = TRUE)
+y_max_cod_keep <- max(c(output_summarized_corr$codkeeptrip,
+                         output_summarized_ind$codkeeptrip), na.rm = TRUE)
+
+y_min_cod_keep_choice <- min(c(output_summarized_corr$codkeepchoice,
+                         output_summarized_ind$codkeepchoice), na.rm = TRUE)
+y_max_cod_keep_choice <- max(c(output_summarized_corr$codkeepchoice,
+                         output_summarized_ind$codkeepchoice), na.rm = TRUE)
+
+
+# Find global y-axis limits for both datasets - cod_release
+y_min_cod_release <- min(c(output_summarized_corr$codreltrip,
+                         output_summarized_ind$codreltrip))
+y_max_cod_release <- max(c(output_summarized_corr$codreltrip,
+                         output_summarized_ind$codreltrip), na.rm = FALSE)
+
+y_min_cod_release_choice <- min(c(output_summarized_corr$codrelchoice,
+                         output_summarized_ind$codrelchoice))
+y_max_cod_release_choice <- max(c(output_summarized_corr$codrelchoice,
+                         output_summarized_ind$codrelchoice), na.rm = FALSE)
 
 #ktau data 
 ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_5-14-25.xlsx"))
@@ -202,6 +252,10 @@ ktau_annual_long <- ktau_annual %>%
     decade = str_extract(parts[, 2], "[0-9]+")
   ) %>%
   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est)
+
+ktau_data_base<-read_excel(paste0(output_data_cd,"ktau_baseline_year_output_6-2-25.xlsx"))
+
+
 
 ktau_corr<-ktau_annual_long %>% dplyr::filter(correlation=="corr")
 ktau_ind<-ktau_annual_long %>% dplyr::filter(correlation=="ind")
@@ -284,7 +338,11 @@ ggplot(cvtotal_diff, aes(x = factor(decade), y = diff_total_cv, color = factor(c
 
 ### Total directed trips (independent)
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = ntrips, color = factor(copula))) +
+plot_data <- output_summarized_ind %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
   geom_boxplot() +
   coord_cartesian(ylim = c(y_min_ntrips, y_max_ntrips))+
   labs(x = "Decade", y = "Number of directed trips")
@@ -292,7 +350,11 @@ ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = ntrips, color
 
 ### Total directed trips (correlated)
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = ntrips, color = factor(copula))) +
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
   geom_boxplot() +
   coord_cartesian(ylim = c(y_min_ntrips, y_max_ntrips))+
   labs(x = "Decade", y = "Number of directed trips")
@@ -305,7 +367,7 @@ ggplot(ntrips_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copu
   labs(x = "Decade", y = "Difference in directed trips (dtrips_corr- dtrips_ind)")
 ```
 
-## Coastwide decadal projections - catch {.tabset}
+## Coastwide decadal projections - catch outcomes at the trip level {.tabset}
 
 Catch data from 2025-04-17.
 
@@ -335,6 +397,7 @@ plot_data <- output_summarized_corr %>%
 
 ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep))+
   labs(x = "Period", y = "Cod harvest per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -347,7 +410,36 @@ plot_data <- output_summarized_ind %>%
 
 ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep))+
   labs(x = "Period", y = "Cod harvest per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod release per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+# Filter out periods that are numeric years between 2011 and 2020
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+
+ggplot(plot_data, aes(x=period, y=codreltrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_release, y_max_cod_release))+
+  labs(x = "Period", y = "Cod release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod release per trip (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=codreltrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_release, y_max_cod_release))+
+  labs(x = "Period", y = "Cod release per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -375,6 +467,7 @@ plot_data <- output_summarized_corr %>%
 
 ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep))+
   labs(x = "Period", y = "Haddock harvest per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -387,7 +480,34 @@ plot_data <- output_summarized_ind %>%
 
 ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep))+
   labs(x = "Period", y = "Haddock harvest per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock release per trip (correlated)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddreltrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_release, y_max_hadd_release))+
+  labs(x = "Period", y = "Haddock release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock release per trip (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddreltrip, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_release, y_max_hadd_release))+
+  labs(x = "Period", y = "Haddock release per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -425,6 +545,166 @@ ggplot(ktau_ind, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
   labs(x = "Decade", y = "Kendall's tau")+
   coord_cartesian(ylim = c(y_min_keep_corr, y_max_keep_corr))+
   theme(axis.text.x = element_text(angle = 45))
+```
+
+## Coastwide decadal projections - catch outcomes at the choice occasion level {.tabset}
+
+Catch data from 2025-04-17.
+
+### cod catch per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod catch per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod keep per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+# Filter out periods that are numeric years between 2011 and 2020
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+
+ggplot(plot_data, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep_choice, y_max_cod_keep_choice))+
+  labs(x = "Period", y = "Cod harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod keep per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_keep_choice, y_max_cod_keep_choice))+
+  labs(x = "Period", y = "Cod harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod release per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+# Filter out periods that are numeric years between 2011 and 2020
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+
+ggplot(plot_data, aes(x=period, y=codrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_release_choice, y_max_cod_release_choice))+
+  labs(x = "Period", y = "Cod release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod release per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=codrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_cod_release_choice, y_max_cod_release_choice))+
+  labs(x = "Period", y = "Cod release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock catch per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_corr %>%
+   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock catch per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock keep per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep_choice, y_max_hadd_keep_choice))+
+  labs(x = "Period", y = "Haddock harvest per choice occassion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock keep per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_keep_choice, y_max_hadd_keep_choice))+
+  labs(x = "Period", y = "Haddock harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock release per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_corr %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_release_choice, y_max_hadd_release_choice))+
+  labs(x = "Period", y = "Haddock release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock release per choice occasion (independent)
+```{r echo = FALSE, fig.width=10}
+plot_data <- output_summarized_ind %>%
+  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
+  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
+
+ggplot(plot_data, aes(x=period, y=haddrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  coord_cartesian(ylim = c(y_min_hadd_release_choice, y_max_hadd_release_choice))+
+  labs(x = "Period", y = "Haddock release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ## Fishing mode-level decadal projections - welfare {.tabset}
