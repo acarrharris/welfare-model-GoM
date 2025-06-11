@@ -120,8 +120,11 @@ ktau_annual_ind_long <- ktau_annual_ind %>%
   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est) %>% 
   dplyr::mutate(copula="independent")
 
+k_tau_baseline <- readRDS(paste0(output_data_cd, "k_tau_baseline.rds")) %>% 
+    select(draw,  copula, decade, k_tau_keep_est, k_tau_catch_est)
+
 k_tau_data_comnined<-ktau_annual_ind_long %>%
-  plyr::rbind.fill(ktau_annual_long) 
+  plyr::rbind.fill(ktau_annual_long, k_tau_baseline) 
 ```
 
 ### CV per trip
@@ -296,7 +299,6 @@ ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_catch_est, color = factor(copu
 ```{r echo = FALSE, fig.width=10}
 ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
   geom_boxplot() +
-  #coord_cartesian(ylim = c(y_min_keep_corr, y_max_keep_corr))+
   labs(x = "Decade", y = "Kendall's tau")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
