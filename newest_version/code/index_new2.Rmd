@@ -93,167 +93,8 @@ head(final_result)
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
 ```{r echo = FALSE,  fig.width=10}
-#By decade and copula - coast
-output_summarized1<- read_rds(paste0(output_data_cd,"model_output_5-14-25_reformat_coast.rds"))  %>%
-  mutate(copula = replace_na(copula, "baseline")) %>% 
-  dplyr::mutate(codreltrip=codrel/ntrips,
-                haddreltrip=haddrel/ntrips, 
-                codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
-
-output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
-
-output_summarized_corr<-output_summarized1 %>% 
-  dplyr::filter(correlation=="corr" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation)
-
-output_summarized_ind<-output_summarized1 %>% 
-  dplyr::filter(correlation=="ind" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation)
-
-cvtrip_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_corr") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_ind") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff <- cvtrip_diff_corr %>% 
-    left_join(cvtrip_diff_ind, by=c("draw", "copula","decade" )) %>%
-     mutate(diff_cvtrip=cvtrip_corr- cvtrip_ind)
-
-cvchoice_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_corr") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_ind") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff <- cvchoice_diff_corr %>% 
-    left_join(cvchoice_diff_ind, by=c("draw", "copula","decade" )) %>%
-     mutate(diff_cvchoice=cv_choice_corr- cv_choice_ind)
-
-cvtotal_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cv)) %>%
-    dplyr::select("draw", "copula","decade","cv_corr") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtotal_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cv)) %>%
-    dplyr::select("draw", "copula","decade","cv_ind") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtotal_diff <- cvtotal_diff_corr %>% 
-    left_join(cvtotal_diff_ind, by=c("draw", "copula","decade" )) %>%
-     mutate(diff_total_cv=cv_corr- cv_ind)
-
-ntrips_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(ntrips)) %>%
-    dplyr::select("draw", "copula","decade","ntrips_corr") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-ntrips_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(ntrips)) %>%
-    dplyr::select("draw", "copula","decade","ntrips_ind") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-ntrips_diff <- ntrips_diff_corr %>% 
-    left_join(ntrips_diff_ind, by=c("draw", "copula","decade" )) %>%
-     mutate(diff_ntrips=ntrips_corr- ntrips_ind)
-
-output_summarized_corr_filtered <- output_summarized_corr %>% filter(decade != 0)
-output_summarized_ind_filtered <- output_summarized_ind %>% filter(decade != 0)
-
-# Find global y-axis limits for both datasets - CV per trip
-y_min_cv <- min(c(output_summarized_corr_filtered$cvtrip, 
-                  output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-y_max_cv <- max(c(output_summarized_corr_filtered$cvtrip, 
-                  output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - CV per choice occasion
-y_min_cv_choice <- min(c(output_summarized_corr_filtered$cv_choice,
-                         output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
-y_max_cv_choice <- max(c(output_summarized_corr_filtered$cv_choice,
-                         output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - total CV
-y_min_cv_total <- min(c(output_summarized_corr_filtered$cv,
-                         output_summarized_ind_filtered$cv), na.rm = TRUE)
-y_max_cv_total <- max(c(output_summarized_corr_filtered$cv,
-                         output_summarized_ind_filtered$cv), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - ntrips
-y_min_ntrips <- min(c(output_summarized_corr$ntrips,
-                         output_summarized_ind$ntrips), na.rm = TRUE)
-y_max_ntrips <- max(c(output_summarized_corr$ntrips,
-                         output_summarized_ind$ntrips), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - hadd keep
-y_min_hadd_keep <- min(c(output_summarized_corr$haddkeeptrip,
-                         output_summarized_ind$haddkeeptrip), na.rm = TRUE)
-y_max_hadd_keep <- max(c(output_summarized_corr$haddkeeptrip,
-                         output_summarized_ind$haddkeeptrip), na.rm = TRUE)
-
-y_min_hadd_keep_choice <- min(c(output_summarized_corr$haddkeepchoice,
-                         output_summarized_ind$haddkeepchoice), na.rm = TRUE)
-y_max_hadd_keep_choice <- max(c(output_summarized_corr$haddkeepchoice,
-                         output_summarized_ind$haddkeepchoice), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - hadd_release
-y_min_hadd_release <- min(c(output_summarized_corr$haddreltrip,
-                         output_summarized_ind$haddreltrip), na.rm = TRUE)
-y_max_hadd_release <- max(c(output_summarized_corr$haddreltrip,
-                         output_summarized_ind$haddreltrip), na.rm = TRUE)
-
-y_min_hadd_release_choice <- min(c(output_summarized_corr$haddrelchoice,
-                         output_summarized_ind$haddrelchoice), na.rm = TRUE)
-y_max_hadd_release_choice <- max(c(output_summarized_corr$haddrelchoice,
-                         output_summarized_ind$haddrelchoice), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets - cod keep
-y_min_cod_keep <- min(c(output_summarized_corr$codkeeptrip,
-                         output_summarized_ind$codkeeptrip), na.rm = TRUE)
-y_max_cod_keep <- max(c(output_summarized_corr$codkeeptrip,
-                         output_summarized_ind$codkeeptrip), na.rm = TRUE)
-
-y_min_cod_keep_choice <- min(c(output_summarized_corr$codkeepchoice,
-                         output_summarized_ind$codkeepchoice), na.rm = TRUE)
-y_max_cod_keep_choice <- max(c(output_summarized_corr$codkeepchoice,
-                         output_summarized_ind$codkeepchoice), na.rm = TRUE)
-
-
-# Find global y-axis limits for both datasets - cod_release
-y_min_cod_release <- min(c(output_summarized_corr$codreltrip,
-                         output_summarized_ind$codreltrip), na.rm = TRUE)
-y_max_cod_release <- max(c(output_summarized_corr$codreltrip,
-                         output_summarized_ind$codreltrip), na.rm = TRUE)
-
-y_min_cod_release_choice <- min(c(output_summarized_corr$codrelchoice,
-                         output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
-y_max_cod_release_choice <- max(c(output_summarized_corr_filtered$codrelchoice,
-                         output_summarized_ind_filtered$codrelchoice), na.rm = TRUE)
-
-
-y_min_cod_cat_choice <- min(c(output_summarized_corr_filtered$codcatchoice,
-                         output_summarized_ind_filtered$codcatchoice), na.rm = TRUE)
-y_max_cod_cat_choice <- max(c(output_summarized_corr_filtered$codcatchoice,
-                         output_summarized_ind_filtered$codcatchoice), na.rm = TRUE)
-
-y_min_hadd_cat_choice <- min(c(output_summarized_corr_filtered$haddcatchoice,
-                         output_summarized_ind_filtered$haddcatchoice), na.rm = TRUE)
-y_max_hadd_cat_choice <- max(c(output_summarized_corr_filtered$haddcatchoice,
-                         output_summarized_ind_filtered$haddcatchoice), na.rm = TRUE)
-
-
 #ktau data 
-ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_5-14-25.xlsx"))
-
+ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
 ktau_annual<-ktau_data %>% filter(month==0) %>% 
   dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
 
@@ -265,866 +106,783 @@ ktau_annual_long <- ktau_annual %>%
   ) %>%
   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est)
 
-ktau_data_base<-read_excel(paste0(output_data_cd,"ktau_baseline_year_output_6-2-25.xlsx"))
 
+ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
+ktau_annual_ind<-ktau_data_ind %>% filter(month==0) %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
 
+ktau_annual_ind_long <- ktau_annual_ind %>%
+  mutate(parts = str_split(domain, "_", simplify = TRUE),
+    correlation = parts[, 1],
+    copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+    decade = str_extract(parts[, 2], "[0-9]+")
+  ) %>%
+  select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est) %>% 
+  dplyr::mutate(copula="independent")
 
-ktau_corr<-ktau_annual_long %>% dplyr::filter(correlation=="corr")
-ktau_ind<-ktau_annual_long %>% dplyr::filter(correlation=="ind")
-
-y_min_catch_corr <- min(c(ktau_corr$k_tau_catch_est, ktau_ind$k_tau_catch_est), na.rm = TRUE)
-y_max_catch_corr <- max(c(ktau_corr$k_tau_catch_est, ktau_ind$k_tau_catch_est), na.rm = TRUE)
-
-y_min_keep_corr <- min(c(ktau_corr$k_tau_keep_est, ktau_ind$k_tau_keep_est), na.rm = TRUE)
-y_max_keep_corr <- max(c(ktau_corr$k_tau_keep_est, ktau_ind$k_tau_keep_est), na.rm = TRUE)
+k_tau_data_comnined<-ktau_annual_ind_long %>%
+  plyr::rbind.fill(ktau_annual_long) 
 ```
 
-### CV per trip (correlated)
+### CV per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)")
-```
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
 
-### CV per trip (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+plot_data<-output_summarized1 %>% 
+  dplyr::filter(decade!=0)
+
+ggplot(plot_data, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv))+
   labs(x = "Decade", y = "Compensating variation per trip ($)")
 ```
 
 ### Difference in CV per trip (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+cvtrip_diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "copula","decade","cvtrip_corr", "cv_choice_corr", "cv_corr", "ntrips_corr") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "copula","decade","cvtrip_ind", "cv_choice_ind", "cv_ind", "ntrips_ind") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff<-cvtrip_diff_corr %>% 
+    left_join(cvtrip_diff_ind, by=c("draw", "copula","decade" )) %>%
+     mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
+            diff_cvtrip=cvtrip_corr- cvtrip_ind, 
+            diff_cv_choice=cv_choice_corr- cv_choice_ind, 
+            diff_cv=cv_corr- cv_ind)
+
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)")
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)")
 ```
 
-### CV per choice occasion (correlated)
+### CV per choice occasion
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
+ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)")
-```
-
-### CV per choice occasion (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice))+
-  labs(x = "Decade", y = "Compensating variation per trip ($)")
+  labs(x = "Decade", y = "Compensating variation per choice occasion ($)")
 ```
 
 ### Difference in CV per choice occasion (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
-ggplot(cvchoice_diff, aes(x = factor(decade), y = diff_cvchoice, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)")
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")
 ```
 
-### Total CV (independent)
+### Total CV
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cv, color = factor(copula))) +
+ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_total, y_max_cv_total))+
-  labs(x = "Decade", y = "Compensating variation($)")
-```
-
-### Total CV (correlated)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cv, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_total, y_max_cv_total))+
-  labs(x = "Decade", y = "Compensating variation($)")
+  labs(x = "Decade", y = "Compensating variation ($)")
 ```
 
 ### Difference in total CV (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
-ggplot(cvtotal_diff, aes(x = factor(decade), y = diff_total_cv, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in total CV ($) (CV_corr- CV_ind)")
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")
 ```
 
-### Total directed trips (independent)
+### Total directed trips
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
 ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_ntrips, y_max_ntrips))+
-  labs(x = "Decade", y = "Number of directed trips")
-```
-
-### Total directed trips (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_ntrips, y_max_ntrips))+
   labs(x = "Decade", y = "Number of directed trips")
 ```
 
 ### Difference in total directed trips (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
-ggplot(ntrips_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in directed trips (dtrips_corr- dtrips_ind)")
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in directed trips (dtrips_corr- dtrips_ind)")
 ```
 
 ## Coastwide decadal projections - catch outcomes at the trip level {.tabset}
 
 Catch data from 2025-04-17.
 
-### cod catch per trip (correlated)
+### cod catch per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=codcattrip, color = factor(copula)))+
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+ggplot(output_summarized1, aes(x=period, y=codcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Cod catch per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod catch per trip (independent)
+### cod keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=codcattrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codkeeptrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Cod catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### cod keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep))+
   labs(x = "Period", y = "Cod harvest per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod keep per trip (independent)
+### cod release per trip
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codreltrip, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_keep, y_max_cod_keep))+
-  labs(x = "Period", y = "Cod harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### cod release per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codreltrip, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_release, y_max_cod_release))+
   labs(x = "Period", y = "Cod release per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod release per trip (independent)
+### haddock catch per trip
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codreltrip, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_release, y_max_cod_release))+
-  labs(x = "Period", y = "Cod release per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock catch per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=haddcattrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock catch per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock catch per trip (independent)
+### haddock keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=haddcattrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep))+
   labs(x = "Period", y = "Haddock harvest per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock keep per trip (independent)
+### haddock release per trip 
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_keep, y_max_hadd_keep))+
-  labs(x = "Period", y = "Haddock harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock release per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddreltrip, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_release, y_max_hadd_release))+
   labs(x = "Period", y = "Haddock release per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock release per trip (independent)
+### k-tau catch
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddreltrip, color = factor(copula)))+
+ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_release, y_max_hadd_release))+
-  labs(x = "Period", y = "Haddock release per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### k-tau catch (correlated)
-```{r echo = FALSE, fig.width=10}
-ggplot(ktau_corr, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_catch_corr, y_max_catch_corr))+
   labs(x = "Decade", y = "Kendall's tau")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### k-tau catch (independent)
+### k-tau keep
 ```{r echo = FALSE, fig.width=10}
-ggplot(ktau_ind, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
+ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_catch_corr, y_max_catch_corr))+
+  #coord_cartesian(ylim = c(y_min_keep_corr, y_max_keep_corr))+
   labs(x = "Decade", y = "Kendall's tau")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### k-tau keep (correlated)
-```{r echo = FALSE, fig.width=10}
-ggplot(ktau_corr, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_keep_corr, y_max_keep_corr))+
-  labs(x = "Decade", y = "Kendall's tau")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### k-tau keep (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(ktau_ind, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
-  geom_boxplot() +
-  labs(x = "Decade", y = "Kendall's tau")+
-  coord_cartesian(ylim = c(y_min_keep_corr, y_max_keep_corr))+
-  theme(axis.text.x = element_text(angle = 45))
 ```
 
 ## Coastwide decadal projections - catch outcomes at the choice occasion level {.tabset}
 
 Catch data from 2025-04-17.
 
-### cod catch per choice occasion (correlated)
+### cod catch per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codcatchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_cat_choice, y_max_cod_cat_choice))+
   labs(x = "Period", y = "Cod catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod catch per choice occasion (independent)
+### cod keep per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codcatchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codkeepchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_cat_choice, y_max_cod_cat_choice))+
-  labs(x = "Period", y = "Cod catch per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### cod keep per choice occasion (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codkeepchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_keep_choice, y_max_cod_keep_choice))+
   labs(x = "Period", y = "Cod harvest per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod keep per choice occasion (independent)
+### cod release per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codrelchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_keep_choice, y_max_cod_keep_choice))+
-  labs(x = "Period", y = "Cod harvest per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### cod release per choice occasion (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codrelchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_release_choice, y_max_cod_release_choice))+
   labs(x = "Period", y = "Cod release per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### cod release per choice occasion (independent)
+### haddock catch per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codrelchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddcatchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cod_release_choice, y_max_cod_release_choice))+
-  labs(x = "Period", y = "Cod release per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock catch per choice occasion (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_cat_choice, y_max_hadd_cat_choice))+
   labs(x = "Period", y = "Haddock catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock catch per choice occasion (independent)
+### haddock keep per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_cat_choice, y_max_hadd_cat_choice))+
-  labs(x = "Period", y = "Haddock catch per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock keep per choice occasion (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_keep_choice, y_max_hadd_keep_choice))+
   labs(x = "Period", y = "Haddock harvest per choice occassion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock keep per choice occasion (independent)
+### haddock release per choice occasion
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)))+
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_keep_choice, y_max_hadd_keep_choice))+
-  labs(x = "Period", y = "Haddock harvest per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-### haddock release per choice occasion (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddrelchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_release_choice, y_max_hadd_release_choice))+
   labs(x = "Period", y = "Haddock release per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### haddock release per choice occasion (independent)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddrelchoice, color = factor(copula)))+
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_hadd_release_choice, y_max_hadd_release_choice))+
-  labs(x = "Period", y = "Haddock release per choice occasion")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-## Fishing mode-level decadal projections - welfare {.tabset}
+## Fishing-mode level  decadal projections - welfare {.tabset}
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
-
 ```{r echo = FALSE,  fig.width=10}
-output_summarized1<- read_rds(paste0(output_data_cd,"model_output_5-14-25_reformat_mode.rds"))  %>%
-  mutate(copula = replace_na(copula, "baseline")) 
-
-output_summarized_corr<-output_summarized1 %>% 
-  dplyr::filter(correlation=="corr" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation)
-
-output_summarized_ind<-output_summarized1 %>% 
-  dplyr::filter(correlation=="ind" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation)
-
-cvtrip_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_corr", "mode") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_ind", "mode") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff <- cvtrip_diff_corr %>% 
-    left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "mode" )) %>%
-     mutate(diff_cvtrip=cvtrip_corr- cvtrip_ind)
-
-cvchoice_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_corr", "mode") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_ind", "mode") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff <- cvchoice_diff_corr %>% 
-    left_join(cvchoice_diff_ind, by=c("draw", "copula","decade" , "mode")) %>%
-     mutate(diff_cvchoice=cv_choice_corr- cv_choice_ind)
-
-output_summarized_corr_filtered <- output_summarized_corr %>% filter(decade != 0)
-output_summarized_ind_filtered <- output_summarized_ind %>% filter(decade != 0)
-
-# Find global y-axis limits for both datasets
-y_min_cv <- min(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-y_max_cv <- max(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets
-y_min_cv_choice <- min(c(output_summarized_corr_filtered$cv_choice, output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
-y_max_cv_choice <- max(c(output_summarized_corr_filtered$cv_choice, output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
+#ktau data 
+# ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
+# ktau_annual<-ktau_data %>% filter(month==0) %>% 
+#   dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+# 
+# ktau_annual_long <- ktau_annual %>%
+#   mutate(parts = str_split(domain, "_", simplify = TRUE),
+#     correlation = parts[, 1],
+#     copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+#     decade = str_extract(parts[, 2], "[0-9]+")
+#   ) %>%
+#   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est)
+# 
+# 
+# ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
+# ktau_annual_ind<-ktau_data_ind %>% filter(month==0) %>% 
+#   dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+# 
+# ktau_annual_ind_long <- ktau_annual_ind %>%
+#   mutate(parts = str_split(domain, "_", simplify = TRUE),
+#     correlation = parts[, 1],
+#     copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+#     decade = str_extract(parts[, 2], "[0-9]+")
+#   ) %>%
+#   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est) %>% 
+#   dplyr::mutate(copula="independent")
+# 
+# k_tau_data_comnined<-ktau_annual_ind_long %>%
+#   plyr::rbind.fill(ktau_annual_long) 
 ```
 
-### CV per trip (correlated)
+### CV per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
-  facet_wrap(~ mode)
-```
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
 
-### CV per trip (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+plot_data<-output_summarized1 %>% 
+  dplyr::filter(decade!=0)
+
+ggplot(plot_data, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv))+
   labs(x = "Decade", y = "Compensating variation per trip ($)") +
   facet_wrap(~ mode)
 ```
 
 ### Difference in CV per trip (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+cvtrip_diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "mode", "copula","decade","cvtrip_corr", "cv_choice_corr", "cv_corr", "ntrips_corr") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "mode", "copula","decade","cvtrip_ind", "cv_choice_ind", "cv_ind", "ntrips_ind") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff<-cvtrip_diff_corr %>% 
+    left_join(cvtrip_diff_ind, by=c("draw","mode", "copula","decade" )) %>%
+     mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
+            diff_cvtrip=cvtrip_corr- cvtrip_ind, 
+            diff_cv_choice=cv_choice_corr- cv_choice_ind, 
+            diff_cv=cv_corr- cv_ind)
+
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
   facet_wrap(~ mode)
 ```
 
-### CV per choice occasion (correlated)
+### CV per choice occasion
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
+ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
-  facet_wrap(~ mode)
-```
-
-### CV per choice occasion (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice))+
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
+  labs(x = "Decade", y = "Compensating variation per choice occasion ($)")+
   facet_wrap(~ mode)
 ```
 
 ### Difference in CV per choice occasion (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
-ggplot(cvchoice_diff, aes(x = factor(decade), y = diff_cvchoice, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")+
   facet_wrap(~ mode)
 ```
 
-## Fishing mode-level decadal projections - catch {.tabset}
-
-Catch data from 2025-04-17. 
-
-### cod catch per trip (correlated)
+### Total CV
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=codcattrip, color = factor(copula)))+
+ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
+  geom_boxplot() +
+  labs(x = "Decade", y = "Compensating variation ($)")+
+  facet_wrap(~ mode)
+```
+
+### Difference in total CV (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Total directed trips
+```{r echo = FALSE, fig.width=10}
+ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
+  geom_boxplot() +
+  labs(x = "Decade", y = "Number of directed trips")+
+  facet_wrap(~ mode)
+```
+
+### Difference in total directed trips (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in directed trips (dtrips_corr- dtrips_ind)")+
+  facet_wrap(~ mode)
+```
+
+## Fishing-mode level decadal projections - catch outcomes at the trip level {.tabset}
+
+Catch data from 2025-04-17.
+
+### cod catch per trip
+```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+ggplot(output_summarized1, aes(x=period, y=codcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Cod catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
-### cod catch per trip (independent)
+### cod keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=codcattrip, color = factor(copula)))+
-  geom_boxplot() +
-  labs(x = "Period", y = "Cod catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~ mode)
-```
-
-### cod keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codkeeptrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Cod harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
-### cod keep per trip (independent)
+### cod release per trip
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codreltrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Cod harvest per trip")+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Period", y = "Cod release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
-### haddock catch per trip (correlated)
+### haddock catch per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=haddcattrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
-### haddock catch per trip (independent)
+### haddock keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=haddcattrip, color = factor(copula)))+
-  geom_boxplot() +
-  labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~ mode)
-```
-
-### haddock keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
-### haddock keep per trip (independent)
+### haddock release per trip 
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Haddock harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Period", y = "Haddock release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+## Fishing-mode decadal projections - catch outcomes at the choice occasion level {.tabset}
+
+Catch data from 2025-04-17.
+
+### cod catch per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### cod keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### cod release per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### haddock catch per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### haddock keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest per choice occassion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### haddock release per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ mode)
 ```
 
 ## State-level decadal projections - welfare {.tabset}
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
-
 ```{r echo = FALSE,  fig.width=10}
-output_summarized1<- read_rds(paste0(output_data_cd,"model_output_5-14-25_reformat_state.rds")) %>%
-  mutate(copula = replace_na(copula, "baseline")) 
-
-output_summarized_corr<-output_summarized1 %>% 
-  dplyr::filter(correlation=="corr" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation) 
-
-output_summarized_ind<-output_summarized1 %>% 
-  dplyr::filter(correlation=="ind" | correlation=="baseline" | (is.na(correlation) & year==2021)) %>% 
-  dplyr::select(-correlation)
-
-cvtrip_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_corr", "state") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cvtrip)) %>%
-    dplyr::select("draw", "copula","decade","cvtrip_ind", "state") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvtrip_diff <- cvtrip_diff_corr %>% 
-    left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "state" )) %>%
-     mutate(diff_cvtrip=cvtrip_corr- cvtrip_ind)
-
-cvchoice_diff_corr <- output_summarized_corr %>%
-  rename_with(~ paste0(.x, "_corr"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_corr", "state") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff_ind <- output_summarized_ind %>%
-  rename_with(~ paste0(.x, "_ind"), c(cv_choice)) %>%
-    dplyr::select("draw", "copula","decade","cv_choice_ind", "state") %>% 
-    dplyr::filter(decade!=0 & !is.na(decade))
-
-cvchoice_diff <- cvchoice_diff_corr %>% 
-    left_join(cvchoice_diff_ind, by=c("draw", "copula","decade" , "state")) %>%
-     mutate(diff_cvchoice=cv_choice_corr- cv_choice_ind)
-
-output_summarized_corr_filtered <- output_summarized_corr %>% filter(decade != 0)
-output_summarized_ind_filtered <- output_summarized_ind %>% filter(decade != 0)
-
-# Find global y-axis limits for both datasets
-y_min_cv <- min(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-y_max_cv <- max(c(output_summarized_corr_filtered$cvtrip, output_summarized_ind_filtered$cvtrip), na.rm = TRUE)
-
-# Find global y-axis limits for both datasets
-y_min_cv_choice <- min(c(output_summarized_corr_filtered$cv_choice, output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
-y_max_cv_choice <- max(c(output_summarized_corr_filtered$cv_choice, output_summarized_ind_filtered$cv_choice), na.rm = TRUE)
+#ktau data 
+# ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
+# ktau_annual<-ktau_data %>% filter(month==0) %>% 
+#   dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+# 
+# ktau_annual_long <- ktau_annual %>%
+#   mutate(parts = str_split(domain, "_", simplify = TRUE),
+#     correlation = parts[, 1],
+#     copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+#     decade = str_extract(parts[, 2], "[0-9]+")
+#   ) %>%
+#   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est)
+# 
+# 
+# ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
+# ktau_annual_ind<-ktau_data_ind %>% filter(month==0) %>% 
+#   dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+# 
+# ktau_annual_ind_long <- ktau_annual_ind %>%
+#   mutate(parts = str_split(domain, "_", simplify = TRUE),
+#     correlation = parts[, 1],
+#     copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+#     decade = str_extract(parts[, 2], "[0-9]+")
+#   ) %>%
+#   select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est) %>% 
+#   dplyr::mutate(copula="independent")
+# 
+# k_tau_data_comnined<-ktau_annual_ind_long %>%
+#   plyr::rbind.fill(ktau_annual_long) 
 ```
 
-### CV per trip (correlated)
+### CV per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
-  facet_wrap(~ state)
-```
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
 
-### CV per trip (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+plot_data<-output_summarized1 %>% 
+  dplyr::filter(decade!=0)
+
+ggplot(plot_data, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv, y_max_cv))+
   labs(x = "Decade", y = "Compensating variation per trip ($)") +
   facet_wrap(~ state)
 ```
 
 ### Difference in CV per trip (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+cvtrip_diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "state", "copula","decade","cvtrip_corr", "cv_choice_corr", "cv_corr", "ntrips_corr") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "state", "copula","decade","cvtrip_ind", "cv_choice_ind", "cv_ind", "ntrips_ind") %>%     dplyr::filter(decade!=0 )
+
+cvtrip_diff<-cvtrip_diff_corr %>% 
+    left_join(cvtrip_diff_ind, by=c("draw","state", "copula","decade" )) %>%
+     mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
+            diff_cvtrip=cvtrip_corr- cvtrip_ind, 
+            diff_cv_choice=cv_choice_corr- cv_choice_ind, 
+            diff_cv=cv_corr- cv_ind)
+
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
   facet_wrap(~ state)
 ```
 
-### CV per choice occasion (correlated)
+### CV per choice occasion
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
+ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
   geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice)) +
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
-  facet_wrap(~ state)
-```
-
-### CV per choice occasion (independent)
-```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind_filtered, aes(x = factor(decade), y = cv_choice, color = factor(copula))) +
-  geom_boxplot() +
-  coord_cartesian(ylim = c(y_min_cv_choice, y_max_cv_choice))+
-  labs(x = "Decade", y = "Compensating variation per trip ($)") +
+  labs(x = "Decade", y = "Compensating variation per choice occasion ($)")+
   facet_wrap(~ state)
 ```
 
 ### Difference in CV per choice occasion (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
-ggplot(cvchoice_diff, aes(x = factor(decade), y = diff_cvchoice, color = factor(copula))) +
-  geom_boxplot() +
-  labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")+
   facet_wrap(~ state)
 ```
 
-## State-level decadal projections - catch {.tabset}
-
-Catch data from 2025-04-17. 
-
-### cod catch per trip (correlated)
+### Total CV
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=codcattrip, color = factor(copula)))+
+ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
+  geom_boxplot() +
+  labs(x = "Decade", y = "Compensating variation ($)")+
+  facet_wrap(~ state)
+```
+
+### Difference in total CV (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Total directed trips
+```{r echo = FALSE, fig.width=10}
+ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
+  geom_boxplot() +
+  labs(x = "Decade", y = "Number of directed trips")+
+  facet_wrap(~ state)
+```
+
+### Difference in total directed trips (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in directed trips (dtrips_corr- dtrips_ind)")+
+  facet_wrap(~ state)
+```
+
+## State-level  level decadal projections - catch outcomes at the trip level {.tabset}
+
+Catch data from 2025-04-17.
+
+### cod catch per trip
+```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+ggplot(output_summarized1, aes(x=period, y=codcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Cod catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
-### cod catch per trip (independent)
+### cod keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=codcattrip, color = factor(copula)))+
-  geom_boxplot() +
-  labs(x = "Period", y = "Cod catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~ state)
-```
-
-### cod keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-# Filter out periods that are numeric years between 2011 and 2020
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codkeeptrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Cod harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
-### cod keep per trip (independent)
+### cod release per trip
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-   dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-   dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=codkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=codreltrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Cod harvest per trip")+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Period", y = "Cod release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
-### haddock catch per trip (correlated)
+### haddock catch per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_corr, aes(x=period, y=haddcattrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
-### haddock catch per trip (independent)
+### haddock keep per trip
 ```{r echo = FALSE, fig.width=10}
-ggplot(output_summarized_ind, aes(x=period, y=haddcattrip, color = factor(copula)))+
-  geom_boxplot() +
-  labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~ state)
-```
-
-### haddock keep per trip (correlated)
-```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_corr %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  dplyr::filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
-### haddock keep per trip (independent)
+### haddock release per trip 
 ```{r echo = FALSE, fig.width=10}
-plot_data <- output_summarized_ind %>%
-  dplyr::select(-year, -tot_cat_cod, -tot_cat_hadd, -dtrip) %>% 
-  filter(!(grepl("^\\d{4}$", period) & as.numeric(period) >= 2011 & as.numeric(period) <= 2020))
-
-ggplot(plot_data, aes(x=period, y=haddkeeptrip, color = factor(copula)))+
+ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))+
   geom_boxplot() +
-  labs(x = "Period", y = "Haddock harvest per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Period", y = "Haddock release per trip")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ state)
 ```
 
+## State-level decadal projections - catch outcomes at the choice occasion level {.tabset}
 
+Catch data from 2025-04-17.
+
+### cod catch per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### cod keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### cod release per choice occasion (correlated)
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### haddock catch per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### haddock keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest per choice occassion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### haddock release per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
