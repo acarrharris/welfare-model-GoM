@@ -44,8 +44,8 @@ historical_and_projections<- read_excel(paste0(output_data_cd,"bottom_temp_refor
 historical_and_projections_annual<- read_excel(paste0(output_data_cd,"bottom_temp_reformat2.xlsx"))  #save the data
 ```
 
-### By decade
-```{r bottom-temp-plot, echo = FALSE, fig.height=6, fig.width=10}
+### Historical by decade and projected 
+```{r bottom-temp-plot1, echo = FALSE, fig.height=6, fig.width=10}
 ggplot(historical_and_projections, aes(month, mean_temp)) +
   geom_point() +
   geom_errorbar(aes(ymin = lower, ymax = upper)) +
@@ -62,8 +62,30 @@ ggplot(historical_and_projections, aes(month, mean_temp)) +
 
 *Mean monthly bottom temps by decade/year, red line indicates the decadal average. Bars represent mean monthly temp +/- 1.96 x standard dev.*
 
-### By year
+### Projected
 ```{r bottom-temp-plot2, echo = FALSE, fig.height=6, fig.width=10}
+projection_temps<-historical_and_projections %>% 
+  dplyr::filter(is.na(year))
+
+ggplot(projection_temps, aes(month, mean_temp)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  facet_wrap(~decade, nrow = 1) +
+  theme(
+    axis.text.x = element_blank(),
+    strip.text = element_text(size = 10, margin = margin()),
+    axis.ticks.x = element_blank()
+  ) +
+  geom_hline(aes(yintercept = mean_decadal_tmp), color = "red") +
+  labs(x = NULL, y = "Sea bottom temperature (C)") 
+ggsave("Z:/cod and haddock/species shift/projection_temps.pdf", width = 8, height = 4)
+```
+
+*Mean monthly bottom temps by decade/year, red line indicates the decadal average. Bars represent mean monthly temp +/- 1.96 x standard dev.*
+
+### Historical by year and projected
+
+```{r bottom-temp-plot3, echo = FALSE, fig.height=6, fig.width=10}
 ggplot(historical_and_projections_annual, aes(month, mean_temp)) +
   geom_point() +
   geom_errorbar(aes(ymin = lower, ymax = upper)) +
@@ -93,10 +115,10 @@ head(final_result)
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
 ```{r echo = FALSE,  fig.width=10}
-#ktau data 
+# coastwide ktau data 
 ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
-ktau_annual<-ktau_data %>% filter(month==0) %>% 
-  dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+ktau_annual<-ktau_data %>% filter(month==0 & domain1=="all") %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1)
 
 ktau_annual_long <- ktau_annual %>%
   mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -108,8 +130,8 @@ ktau_annual_long <- ktau_annual %>%
 
 
 ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
-ktau_annual_ind<-ktau_data_ind %>% filter(month==0) %>% 
-  dplyr::select(-k_tau_catch_p, -k_tau_keep_p)
+ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1=="all") %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1)
 
 ktau_annual_ind_long <- ktau_annual_ind %>%
   mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -123,8 +145,85 @@ ktau_annual_ind_long <- ktau_annual_ind %>%
 k_tau_baseline <- readRDS(paste0(output_data_cd, "k_tau_baseline.rds")) %>% 
     select(draw,  copula, decade, k_tau_keep_est, k_tau_catch_est)
 
-k_tau_data_comnined<-ktau_annual_ind_long %>%
+k_tau_data_combined_coast<-ktau_annual_ind_long %>%
   plyr::rbind.fill(ktau_annual_long, k_tau_baseline) 
+
+# coastwide by state ktau data 
+ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
+ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
+  dplyr::rename(state=domain1)
+
+ktau_annual_long <- ktau_annual %>%
+  mutate(parts = str_split(domain, "_", simplify = TRUE),
+    correlation = parts[, 1],
+    copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+    decade = str_extract(parts[, 2], "[0-9]+")
+  ) %>%
+  select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state)
+
+
+ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
+ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
+  dplyr::rename(state=domain1)
+
+ktau_annual_ind_long <- ktau_annual_ind %>%
+  mutate(parts = str_split(domain, "_", simplify = TRUE),
+    correlation = parts[, 1],
+    copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+    decade = str_extract(parts[, 2], "[0-9]+")
+  ) %>%
+  select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state) %>% 
+  dplyr::mutate(copula="independent")
+
+# k_tau_baseline <- readRDS(paste0(output_data_cd, "k_tau_baseline.rds")) %>% 
+#     select(draw,  copula, decade, k_tau_keep_est, k_tau_catch_est)
+# 
+# k_tau_data_combined_coast<-ktau_annual_ind_long %>%
+#   plyr::rbind.fill(ktau_annual_long, k_tau_baseline) 
+
+k_tau_data_combined_state<-ktau_annual_ind_long %>% 
+    plyr::rbind.fill(ktau_annual_long) 
+
+# coastwide by mode ktau data 
+ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25.xlsx"))
+ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
+  dplyr::rename(mode=domain1)
+
+ktau_annual_long <- ktau_annual %>%
+  mutate(parts = str_split(domain, "_", simplify = TRUE),
+    correlation = parts[, 1],
+    copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+    decade = str_extract(parts[, 2], "[0-9]+")
+  ) %>%
+  select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode)
+
+
+ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_6-2-25_ind.xlsx"))
+ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
+  dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
+  dplyr::rename(mode=domain1)
+
+ktau_annual_ind_long <- ktau_annual_ind %>%
+  mutate(parts = str_split(domain, "_", simplify = TRUE),
+    correlation = parts[, 1],
+    copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
+    decade = str_extract(parts[, 2], "[0-9]+")
+  ) %>%
+  select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode) %>% 
+  dplyr::mutate(copula="independent")
+
+# k_tau_baseline <- readRDS(paste0(output_data_cd, "k_tau_baseline.rds")) %>% 
+#     select(draw,  copula, decade, k_tau_keep_est, k_tau_catch_est)
+# 
+# k_tau_data_combined_coast<-ktau_annual_ind_long %>%
+#   plyr::rbind.fill(ktau_annual_long, k_tau_baseline) 
+
+k_tau_data_combined_mode<-ktau_annual_ind_long %>% 
+    plyr::rbind.fill(ktau_annual_long) 
+
 ```
 
 ### CV per trip
@@ -133,7 +232,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -152,7 +253,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 
@@ -236,7 +339,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -289,7 +394,7 @@ ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))
 
 ### k-tau catch
 ```{r echo = FALSE, fig.width=10}
-ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Decade", y = "Kendall's tau")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -297,7 +402,7 @@ ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_catch_est, color = factor(copu
 
 ### k-tau keep
 ```{r echo = FALSE, fig.width=10}
-ggplot(k_tau_data_comnined, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Decade", y = "Kendall's tau")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -355,7 +460,140 @@ ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-## Fishing-mode level  decadal projections - welfare {.tabset}
+## Coastwide decadal projections - aggregate catch outcomes  {.tabset}
+
+### cod harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod plus haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_keep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### cod plus haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Diff. total cod harvest (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","codkeep_corr", "haddkeep_corr", 
+                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","codkeep_ind", "haddkeep_ind", 
+                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff<-diff_corr %>% 
+    left_join(diff_ind, by=c("draw", "copula","decade" )) %>%
+     mutate(diff_codkeep=codkeep_corr- codkeep_ind, 
+            diff_haddkeep=haddkeep_corr- haddkeep_ind, 
+            diff_codcat=codcat_corr- codcat_ind, 
+            diff_haddcat=haddcat_corr- haddcat_ind, 
+            diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
+            diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind )
+
+ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")
+```
+
+### Diff. total cod catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")
+```
+
+### Diff. total haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")
+```
+
+### Diff. total haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")
+```
+
+### Diff. total cod plus haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")
+```
+
+### Diff. total cod plus haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")
+```
+
+## Fishing-mode level decadal projections - welfare {.tabset}
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
 ```{r echo = FALSE,  fig.width=10}
@@ -396,7 +634,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -416,7 +656,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 
@@ -507,7 +749,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -560,7 +804,25 @@ ggplot(output_summarized1, aes(x=period, y=haddkeeptrip, color = factor(copula))
 ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock release per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~ mode)
+```
+
+### k-tau catch
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_mode, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "Kendall's tau")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~ mode)
+```
+
+### k-tau keep
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_mode, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "Kendall's tau")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~ mode)
 ```
 
@@ -622,6 +884,151 @@ ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)
   facet_wrap(~ mode)
 ```
 
+## Fishing-mode decadal projections - aggregate catch outcomes  {.tabset}
+
+### cod harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### cod plus haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_keep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### cod catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### cod plus haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ mode)
+```
+
+### Diff. total cod harvest (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","mode", "codkeep_corr", "haddkeep_corr", 
+                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","mode","codkeep_ind", "haddkeep_ind", 
+                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff<-diff_corr %>% 
+    left_join(diff_ind, by=c("draw", "copula","decade","mode" )) %>%
+     mutate(diff_codkeep=codkeep_corr- codkeep_ind, 
+            diff_haddkeep=haddkeep_corr- haddkeep_ind, 
+            diff_codcat=codcat_corr- codcat_ind, 
+            diff_haddcat=haddcat_corr- haddcat_ind, 
+            diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
+            diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind )
+
+ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Diff. total cod catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Diff. total haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Diff. total haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Diff. total cod plus haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
+### Diff. total cod plus haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")+
+  facet_wrap(~ mode)
+```
+
 ## State-level decadal projections - welfare {.tabset}
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
@@ -663,7 +1070,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -683,7 +1092,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 
@@ -774,7 +1185,9 @@ output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reforma
   dplyr::mutate(codreltrip=codrel/ntrips,
                 haddreltrip=haddrel/ntrips, 
                 codrelchoice=codrel/n_choice_occasions,
-                haddrelchoice=haddrel/n_choice_occasions)
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
 
 output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
 output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
@@ -828,6 +1241,24 @@ ggplot(output_summarized1, aes(x=period, y=haddreltrip, color = factor(copula)))
   geom_boxplot() +
   labs(x = "Period", y = "Haddock release per trip")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### k-tau catch
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_state, aes(x=decade, y=k_tau_catch_est, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "Kendall's tau")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~ state)
+```
+
+### k-tau keep
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_state, aes(x=decade, y=k_tau_keep_est, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "Kendall's tau")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~ state)
 ```
 
@@ -886,5 +1317,150 @@ ggplot(output_summarized1, aes(x=period, y=haddrelchoice, color = factor(copula)
   geom_boxplot() +
   labs(x = "Period", y = "Haddock release per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+## State-level decadal projections - aggregate catch outcomes  {.tabset}
+
+### cod harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddkeep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### cod plus haddock harvest 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_keep, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock harvest")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### cod catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=codcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=haddcat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### cod plus haddock catch 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod plus haddock catch")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ state)
+```
+
+### Diff. total cod harvest (corr. - ind.)
+```{r echo = FALSE, fig.width=10}
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+
+output_summarized_corr<-output_summarized1 %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::filter(decade!=0) 
+
+output_summarized_ind<-output_summarized1 %>% 
+  dplyr::filter(correlation=="independent" ) %>% 
+  dplyr::filter(decade!=0) 
+
+diff_corr <- output_summarized_corr %>%
+  rename_with(~ paste0(.x, "_corr"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","state", "codkeep_corr", "haddkeep_corr", 
+                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff_ind <- output_summarized_ind %>%
+  rename_with(~ paste0(.x, "_ind"), c(codkeep, haddkeep, codcat, haddcat, 
+                                       cod_hadd_keep, cod_hadd_cat)) %>%
+    dplyr::select("draw", "copula","decade","state","codkeep_ind", "haddkeep_ind", 
+                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind") %>%   
+                                       dplyr::filter(decade!=0 )
+
+diff<-diff_corr %>% 
+    left_join(diff_ind, by=c("draw", "copula","decade","state" )) %>%
+     mutate(diff_codkeep=codkeep_corr- codkeep_ind, 
+            diff_haddkeep=haddkeep_corr- haddkeep_ind, 
+            diff_codcat=codcat_corr- codcat_ind, 
+            diff_haddcat=haddcat_corr- haddcat_ind, 
+            diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
+            diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind )
+
+ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Diff. total cod catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Diff. total haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Diff. total haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Diff. total cod plus haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")+
+  facet_wrap(~ state)
+```
+
+### Diff. total cod plus haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")+
   facet_wrap(~ state)
 ```
