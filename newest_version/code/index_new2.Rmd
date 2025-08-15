@@ -223,7 +223,6 @@ ktau_annual_ind_long <- ktau_annual_ind %>%
 
 k_tau_data_combined_mode<-ktau_annual_ind_long %>% 
     plyr::rbind.fill(ktau_annual_long) 
-
 ```
 
 ### CV per trip
@@ -284,7 +283,7 @@ cvtrip_diff<-cvtrip_diff_corr %>%
 
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in CV ($) per trip (corr- ind)")
 ```
 
 ### CV per choice occasion
@@ -298,7 +297,7 @@ ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (corr- ind)")
 ```
 
 ### Total CV
@@ -312,7 +311,7 @@ ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference total CV ($) (corr- ind)")
 ```
 
 ### Total directed trips
@@ -478,6 +477,22 @@ ggplot(output_summarized1, aes(x=period, y=haddkeep, color = factor(copula)))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+### cod total mortality 
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=cod_tot_mort, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod total mortality")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### haddock total mortality  
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1, aes(x=period, y=hadd_tot_mort, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock total mortality")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 ### cod plus haddock harvest 
 ```{r echo = FALSE, fig.width=10}
 ggplot(output_summarized1, aes(x=period, y=cod_hadd_keep, color = factor(copula)))+
@@ -510,7 +525,7 @@ ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula))
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-### Diff. total cod harvest (corr. - ind.)
+### Diff. total cod harvest
 ```{r echo = FALSE, fig.width=10}
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
   dplyr::mutate(codreltrip=codrel/ntrips,
@@ -532,16 +547,18 @@ output_summarized_ind<-output_summarized1 %>%
 
 diff_corr <- output_summarized_corr %>%
   rename_with(~ paste0(.x, "_corr"), c(codkeep, haddkeep, codcat, haddcat, 
-                                       cod_hadd_keep, cod_hadd_cat)) %>%
+                                       cod_hadd_keep, cod_hadd_cat, cod_tot_mort, hadd_tot_mort)) %>%
     dplyr::select("draw", "copula","decade","codkeep_corr", "haddkeep_corr", 
-                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr") %>%   
+                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr", 
+                   "cod_tot_mort_corr", "hadd_tot_mort_corr") %>%   
                                        dplyr::filter(decade!=0 )
 
 diff_ind <- output_summarized_ind %>%
   rename_with(~ paste0(.x, "_ind"), c(codkeep, haddkeep, codcat, haddcat, 
-                                       cod_hadd_keep, cod_hadd_cat)) %>%
+                                       cod_hadd_keep, cod_hadd_cat, cod_tot_mort, hadd_tot_mort)) %>%
     dplyr::select("draw", "copula","decade","codkeep_ind", "haddkeep_ind", 
-                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind") %>%   
+                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind", 
+                  "cod_tot_mort_ind", "hadd_tot_mort_ind") %>%   
                                        dplyr::filter(decade!=0 )
 
 diff<-diff_corr %>% 
@@ -551,46 +568,354 @@ diff<-diff_corr %>%
             diff_codcat=codcat_corr- codcat_ind, 
             diff_haddcat=haddcat_corr- haddcat_ind, 
             diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
-            diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind )
+            diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
+            diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
+            diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
+            pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
+            pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
+            pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
+            pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
+            pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
+            pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
+            pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
+            pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100)
 
 ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total cod harvest (corr- ind)")
 ```
 
 ### Diff. total cod catch
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total cod catch (corr- ind)")
 ```
 
 ### Diff. total haddock harvest
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total haddock harvest (corr- ind)")
 ```
 
 ### Diff. total haddock catch
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total haddock catch (corr- ind)")
+```
+
+### Diff. total cod mortality
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_cod_mort, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total cod mortality (corr- ind)")
+```
+
+### Diff. total haddock mortality
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = diff_hadd_mort, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "Difference in total haddock mortality (corr- ind)")
 ```
 
 ### Diff. total cod plus haddock harvest
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (corr- ind)")
 ```
 
 ### Diff. total cod plus haddock catch
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (corr- ind)")
+```
+
+### Pct. diff. total cod harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_codkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total cod harvest ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total cod catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_codcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total cod harvest ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_haddkeep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total haddock harvest ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_haddcat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total haddock catch ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total cod mortality
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_cod_mort, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total cod mortality ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total haddock mortality
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_hadd_mort, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total haddock mortality ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total cod plus haddock harvest
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_cod_hadd_keep, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total cod plus haddock harvest ((corr- ind)/ind)*100")
+```
+
+### Pct. diff. total cod plus haddock catch
+```{r echo = FALSE, fig.width=10}
+ggplot(diff, aes(x = factor(decade), y = pct_diff_cod_hadd_cat, color = factor(copula))) +
+   geom_boxplot() +
+   labs(x = "Decade", y = "% diff in total cod plus haddock catch ((corr- ind)/ind)*100")
+```
+
+## Manuscript figures {.tabset}
+
+### Stacked figures 
+```{r echo = FALSE, fig.width=10}
+projection_temps<-historical_and_projections %>% 
+  dplyr::filter(is.na(year))
+
+
+output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_coast.rds"))  %>%
+  dplyr::mutate(codreltrip=codrel/ntrips,
+                haddreltrip=haddrel/ntrips, 
+                codrelchoice=codrel/n_choice_occasions,
+                haddrelchoice=haddrel/n_choice_occasions, 
+                cod_hadd_keep=codkeep+haddkeep, 
+                cod_hadd_cat=codcat+haddcat)
+
+output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+
+output2<-output_summarized1 %>%
+  dplyr::mutate(decade = dplyr::recode(decade,
+    `1` = "2021-2030",
+    `2` = "2031-2040",
+    `3` = "2041-2050",
+    `4` = "2051-2060",
+    `5` = "2061-2070",
+    `6` = "2071-2080",
+    `7` = "2081-2090",
+    `8` = "2091-3000"
+  )) %>% 
+  dplyr::filter(!is.na(decade))
+
+df_subset <- output2 %>%
+  # keep only the independent/independent rows
+  dplyr::filter(copula == "independent", correlation == "independent") %>%
+  # stratified sample: 100 per decade
+  dplyr::group_by(decade) %>%
+  dplyr::slice_sample(n = 100) %>%
+  dplyr::ungroup()
+
+output2<-output2 %>% 
+  dplyr::filter(copula!="independent") 
+
+output2<-output2 %>% 
+  plyr::rbind.fill(df_subset) %>% 
+  dplyr::mutate(codkeep=codkeep/1000, haddkeep=haddkeep/1000, cv=cv/1000000)
+
+
+library(ggplot2)
+library(patchwork)
+
+# Reorder factor levels so "independent" is first
+output2$copula <- factor(output2$copula,
+                         levels = c("independent", setdiff(unique(output2$copula), "independent")))
+
+# Shared color scale: no title, single row legend
+copula_colors <- scale_color_discrete(
+  name = NULL,
+  guide = guide_legend(nrow = 1)
+)
+
+# 1. Temperatures with decade strip labels
+p1 <- ggplot(projection_temps, aes(month, mean_temp)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  facet_wrap(~decade, nrow = 1) +
+  geom_hline(aes(yintercept = mean_decadal_tmp), color = "red") +
+  labs(x = NULL, y = "Sea bottom\ntemperature (C)") +
+  copula_colors +
+  theme(
+    axis.text.x   = element_blank(),
+    axis.ticks.x  = element_blank(),
+    strip.text    = element_text(size = 10, margin = margin()),
+    legend.position = "none"
+  )
+
+# 2. Cod harvest
+p2 <- ggplot(output2, aes(y = codkeep, color = copula)) +
+  geom_boxplot() +
+  facet_wrap(~decade, nrow = 1) +
+  labs(x = NULL, y = "Cod harvest\n('000s)") +
+  copula_colors +
+  theme(
+    axis.text.x   = element_blank(),
+    axis.ticks.x  = element_blank(),
+    strip.text    = element_blank(),
+    legend.position = "none"
+  )
+
+# 3. Haddock harvest
+p3 <- ggplot(output2, aes(y = haddkeep, color = copula)) +
+  geom_boxplot() +
+  facet_wrap(~decade, nrow = 1) +
+  labs(x = NULL, y = "Haddock harvest\n('000s)") +
+  copula_colors +
+  theme(
+    axis.text.x   = element_blank(),
+    axis.ticks.x  = element_blank(),
+    strip.text    = element_blank(),
+    legend.position = "none"
+  )
+
+# 4. Compensating variation
+p4 <- ggplot(output2, aes(y = cv, color = copula)) +
+  geom_boxplot() +
+  facet_wrap(~decade, nrow = 1) +
+  labs(x=NULL,  y = "Compensating\nvariation ($M)") +
+  copula_colors +
+  theme(
+    axis.text.x   = element_blank(),
+    axis.ticks.x  = element_blank(),
+    strip.text    = element_blank()
+  )
+
+# Combine plots with shared legend
+final_plot <- (p1 / p2 / p3 / p4) +
+  plot_layout(heights = c(1, 1, 1, 1), guides = "collect") &
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_blank(),
+    axis.title.y = element_text(size = 9)
+  )
+
+final_plot
+
+## Try a plots with al lmeans and sd bars
+# library(patchwork)
+# 
+# # Reorder factor levels so "independent" is first
+# output2$copula <- factor(output2$copula,
+#                          levels = c("independent", setdiff(unique(output2$copula), "independent")))
+# 
+# # Compute summary stats (mean ± 1.96*SD) by decade and copula
+# summary_stats <- output2 %>%
+#   group_by(decade, copula) %>%
+#   summarise(
+#     cod_mean = mean(codkeep, na.rm = TRUE),
+#     cod_sd   = sd(codkeep, na.rm = TRUE),
+#     hadd_mean = mean(haddkeep, na.rm = TRUE),
+#     hadd_sd   = sd(haddkeep, na.rm = TRUE),
+#     cv_mean   = mean(cv, na.rm = TRUE),
+#     cv_sd     = sd(cv, na.rm = TRUE),
+#     .groups = "drop"
+#   ) %>% 
+#   dplyr::ungroup()
+# 
+# # Shared color scale
+# copula_colors <- scale_color_discrete(
+#   name = NULL,
+#   guide = guide_legend(nrow = 1)
+# )
+# 
+# # 1. Monthly bottom temperatures (same as before)
+# p1 <- ggplot(projection_temps, aes(month, mean_temp)) +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = lower, ymax = upper)) +
+#   facet_wrap(~decade, nrow = 1) +
+#   geom_hline(aes(yintercept = mean_decadal_tmp), color = "red") +
+#   labs(x = NULL, y = "Sea bottom temperature (C)") +
+#   copula_colors +
+#   theme(
+#     axis.text.x   = element_blank(),
+#     axis.ticks.x  = element_blank(),
+#     strip.text    = element_text(size = 10, margin = margin()),
+#     legend.position = "none"
+#   )
+# 
+# # 2. Cod harvest points + error bars
+# p2 <- ggplot(summary_stats, aes(x = copula, y = cod_mean, color = copula)) +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = cod_mean - 1.96*cod_sd,
+#                     ymax = cod_mean + 1.96*cod_sd),
+#                 width = 0.2) +
+#   facet_wrap(~decade, nrow = 1) +
+#   labs(x = NULL, y = "Cod harvest ('000s)") +
+#   copula_colors +
+#   theme(
+#     axis.text.x   = element_blank(),
+#     axis.ticks.x  = element_blank(),
+#     strip.text    = element_blank(),
+#     legend.position = "none"
+#   )
+# 
+# # 3. Haddock harvest points + error bars
+# p3 <- ggplot(summary_stats, aes(x = copula, y = hadd_mean, color = copula)) +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = hadd_mean - 1.96*hadd_sd,
+#                     ymax = hadd_mean + 1.96*hadd_sd),
+#                 width = 0.2) +
+#   facet_wrap(~decade, nrow = 1) +
+#   labs(x = NULL, y = "Haddock harvest ('000s)") +
+#   copula_colors +
+#   theme(
+#     axis.text.x   = element_blank(),
+#     axis.ticks.x  = element_blank(),
+#     strip.text    = element_blank(),
+#     legend.position = "none"
+#   )
+# 
+# # 4. Compensating variation points + error bars
+# p4 <- ggplot(summary_stats, aes(x = copula, y = cv_mean, color = copula)) +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = cv_mean - 1.96*cv_sd,
+#                     ymax = cv_mean + 1.96*cv_sd),
+#                 width = 0.2) +
+#   facet_wrap(~decade, nrow = 1) +
+#   labs(x = NULL, y = "Compensating variation ($M)") +
+#   copula_colors +
+#   theme(
+#     axis.text.x   = element_blank(),
+#     axis.ticks.x  = element_blank(),
+#     strip.text    = element_blank(),
+#   )
+# 
+# # Combine plots with shared legend
+# final_plot <- (p1 / p2 / p3 / p4) +
+#   plot_layout(heights = c(1, 1, 1, 1), guides = "collect") &
+#   theme(
+#     legend.position = "bottom",
+#     legend.direction = "horizontal",
+#     legend.title = element_blank(),
+#     axis.title.y = element_text(size = 9)
+#   )
+# invisible(summary_stats)
+# final_plot
 ```
 
 ## Fishing-mode level decadal projections - welfare {.tabset}
@@ -650,7 +975,7 @@ ggplot(plot_data, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
   facet_wrap(~ mode)
 ```
 
-### Difference in CV per trip (corr. - ind.)
+### Difference in CV per trip
 ```{r echo = FALSE, fig.width=10}
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
   dplyr::mutate(codreltrip=codrel/ntrips,
@@ -687,7 +1012,7 @@ cvtrip_diff<-cvtrip_diff_corr %>%
 
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+   labs(x = "Decade", y = "Difference in CV ($) per trip (corr- ind)") +
   facet_wrap(~ mode)
 ```
 
@@ -699,11 +1024,11 @@ ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))
   facet_wrap(~ mode)
 ```
 
-### Difference in CV per choice occasion (corr. - ind.)
+### Difference in CV per choice occasion
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -715,11 +1040,11 @@ ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
   facet_wrap(~ mode)
 ```
 
-### Difference in total CV (corr. - ind.)
+### Difference in total CV
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference total CV ($) (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -731,7 +1056,7 @@ ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
   facet_wrap(~ mode)
 ```
 
-### Difference in total directed trips (corr. - ind.)
+### Difference in total directed trips
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
    geom_boxplot() +
@@ -940,7 +1265,7 @@ ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula))
   facet_wrap(~ mode)
 ```
 
-### Diff. total cod harvest (corr. - ind.)
+### Diff. total cod harvest
 ```{r echo = FALSE, fig.width=10}
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_mode.rds"))  %>%
   dplyr::mutate(codreltrip=codrel/ntrips,
@@ -985,7 +1310,7 @@ diff<-diff_corr %>%
 
 ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod harvest (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -993,7 +1318,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) 
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod catch (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -1001,7 +1326,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total haddock harvest (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -1009,7 +1334,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula)))
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total haddock catch (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -1017,7 +1342,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) 
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -1025,7 +1350,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copu
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (corr- ind)")+
   facet_wrap(~ mode)
 ```
 
@@ -1086,7 +1411,7 @@ ggplot(plot_data, aes(x = factor(decade), y = cvtrip, color = factor(copula))) +
   facet_wrap(~ state)
 ```
 
-### Difference in CV per trip (corr. - ind.)
+### Difference in CV per trip
 ```{r echo = FALSE, fig.width=10}
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
   dplyr::mutate(codreltrip=codrel/ntrips,
@@ -1123,7 +1448,7 @@ cvtrip_diff<-cvtrip_diff_corr %>%
 
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cvtrip, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per trip (CV_corr- CV_ind)") +
+   labs(x = "Decade", y = "Difference in CV ($) per trip (corr- ind)") +
   facet_wrap(~ state)
 ```
 
@@ -1135,11 +1460,11 @@ ggplot(plot_data, aes(x = factor(decade), y = cv_choice, color = factor(copula))
   facet_wrap(~ state)
 ```
 
-### Difference in CV per choice occasion (corr. - ind.)
+### Difference in CV per choice occasion
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv_choice, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in CV ($) per choice occasion (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1151,11 +1476,11 @@ ggplot(plot_data, aes(x = factor(decade), y = cv, color = factor(copula))) +
   facet_wrap(~ state)
 ```
 
-### Difference in total CV (corr. - ind.)
+### Difference in total CV
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference total CV ($) (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference total CV ($) (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1167,7 +1492,7 @@ ggplot(plot_data, aes(x = factor(period), y = ntrips, color = factor(copula))) +
   facet_wrap(~ state)
 ```
 
-### Difference in total directed trips (corr. - ind.)
+### Difference in total directed trips
 ```{r echo = FALSE, fig.width=10}
 ggplot(cvtrip_diff, aes(x = factor(decade), y = diff_ntrips, color = factor(copula))) +
    geom_boxplot() +
@@ -1284,7 +1609,7 @@ ggplot(output_summarized1, aes(x=period, y=codkeepchoice, color = factor(copula)
   facet_wrap(~ state)
 ```
 
-### cod release per choice occasion (correlated)
+### cod release per choice occasion
 ```{r echo = FALSE, fig.width=10}
 ggplot(output_summarized1, aes(x=period, y=codrelchoice, color = factor(copula)))+
   geom_boxplot() +
@@ -1376,7 +1701,7 @@ ggplot(output_summarized1, aes(x=period, y=cod_hadd_cat, color = factor(copula))
   facet_wrap(~ state)
 ```
 
-### Diff. total cod harvest (corr. - ind.)
+### Diff. total cod harvest
 ```{r echo = FALSE, fig.width=10}
 output_summarized1<- read_rds(paste0(output_data_cd,"model_output_6-2-25_reformat_state.rds"))  %>%
   dplyr::mutate(codreltrip=codrel/ntrips,
@@ -1421,7 +1746,7 @@ diff<-diff_corr %>%
 
 ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod harvest (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1429,7 +1754,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_codkeep, color = factor(copula))) 
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod catch (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1437,7 +1762,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_codcat, color = factor(copula))) +
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total haddock harvest (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1445,7 +1770,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_haddkeep, color = factor(copula)))
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total haddock catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total haddock catch (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1453,7 +1778,7 @@ ggplot(diff, aes(x = factor(decade), y = diff_haddcat, color = factor(copula))) 
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod plus haddock harvest (corr- ind)")+
   facet_wrap(~ state)
 ```
 
@@ -1461,6 +1786,6 @@ ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_keep, color = factor(copu
 ```{r echo = FALSE, fig.width=10}
 ggplot(diff, aes(x = factor(decade), y = diff_cod_hadd_cat, color = factor(copula))) +
    geom_boxplot() +
-   labs(x = "Decade", y = "Difference in total cod plus haddock catch (CV_corr- CV_ind)")+
+   labs(x = "Decade", y = "Difference in total cod plus haddock catch (corr- ind)")+
   facet_wrap(~ state)
 ```
