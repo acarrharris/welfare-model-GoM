@@ -111,6 +111,93 @@ head(final_result)
 ```
 -->
 
+## Regulations, effort by state and year {.tabset}
+```{r echo = FALSE,  fig.width=10}
+# Load data
+df<-data.frame(read_csv("E:/Lou's projects/welfare-model-GoM/input_data/directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)
+
+# Filter for 2019-2021
+df_filtered <- df %>%
+  dplyr::filter(year>2018)
+
+df_filtered <- df_filtered %>%
+  dplyr::mutate(
+    cod_open = cod_bag > 0,
+    haddock_open = hadd_bag > 0) 
+``` 
+
+### Directed trips
+```{r echo = FALSE,  fig.width=10}
+ggplot(df_filtered, aes(x = factor(period), y = dtrip, fill = factor(year), group = year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ mode) +
+  labs(
+    title = "Directed Trips by Period and Year",
+    x = "Period (half-month)",
+    y = "Directed Trips",
+    color = "Year"
+  ) +
+  theme_minimal()
+``` 
+
+### Haddock bag limits
+```{r echo = FALSE,  fig.width=10}
+ggplot(df_filtered, aes(x = factor(period), y = hadd_bag, fill = factor(year), group = year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ mode) +
+  labs(
+    title = "Haddock Bag Limits by Period and Year",
+    x = "Period (half-month)",
+    y = "Haddock Bag Limit",
+    color = "Year"
+  ) +
+  theme_minimal()
+
+``` 
+
+### Cod bag limits
+```{r echo = FALSE,  fig.width=10}
+ggplot(df_filtered, aes(x = factor(period), y = cod_bag, fill = factor(year), group = year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ mode) +
+  labs(
+    title = "Cod Bag Limits by Period and Year",
+    x = "Period (half-month)",
+    y = "Cod Bag Limit",
+    color = "Year"
+  ) +
+  theme_minimal()
+``` 
+
+### Directed trips by state
+```{r echo = FALSE,  fig.width=10}
+ggplot(df_filtered, aes(x = factor(st), y = dtrip, fill = factor(year))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ mode) +
+  labs(
+    title = "Directed Trips by State and Year",
+    x = "State",
+    y = "Directed Trips",
+    fill = "Year"
+  ) +
+  theme_minimal()
+``` 
+
+### Directed trips by period and cod open status
+```{r echo = FALSE,  fig.width=10}
+ggplot(df_filtered, aes(x = factor(period), y = dtrip, fill = cod_open)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(year ~ mode) +
+  labs(
+    title = "Directed Trips by Period and Cod Season Status",
+    x = "Period (half-month)",
+    y = "Directed Trips",
+    fill = "Cod Open?"
+  ) +
+  theme_minimal()
+```  
+
+
 ## Coastwide decadal projections - welfare  {.tabset}
 
 Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
@@ -404,6 +491,21 @@ ggplot(cvtrip_diff_combined, aes(x = factor(decade), y = diff_cv_choice, color =
 
 ### Total CV
 ```{r echo = FALSE, fig.width=10}
+# plot_data_2019<-plot_data_combined %>%  
+# 
+# group_medians <- plot_data_combined %>%
+#   dplyr::group_by(base_year) %>%
+#   dplyr::summarise(median = median(n_choice_occasions, na.rm = TRUE), .groups = "drop")
+# 
+# # View the medians per group
+# print(group_medians)
+# 
+# # Get the min and max of these medians
+# min_median <- min(group_medians$median_cv)
+# max_median <- max(group_medians$median_cv)
+# 
+# min_median/21570873
+# max_median/21570873
 ggplot(plot_data_combined, aes(x = factor(decade), y = cv, color = factor(copula))) +
   geom_boxplot() +
   labs(x = "Decade", y = "Compensating variation ($)")+
@@ -412,6 +514,21 @@ ggplot(plot_data_combined, aes(x = factor(decade), y = cv, color = factor(copula
 
 ### Difference in total CV (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
+# cvtrip_diff_combined1<-cvtrip_diff_combined %>% dplyr::filter(base_year==2019)
+# 
+# group_medians <- cvtrip_diff_combined1 %>%
+#   dplyr::group_by(copula, correlation, decade) %>%
+#   dplyr::summarise(median_cv = median(diff_cv, na.rm = TRUE), .groups = "drop")
+# 
+# # View the medians per group
+# print(group_medians)
+# 
+# # Get the min and max of these medians
+# min_median <- min(group_medians$median_cv)
+# max_median <- max(group_medians$median_cv)
+# 
+# min_median/21570873
+# max_median/21570873
 ggplot(cvtrip_diff_combined, aes(x = factor(decade), y = diff_cv, color = factor(copula))) +
   geom_boxplot() +
   labs(x = "Decade", y = "Difference total CV ($) (corr- ind)")+
