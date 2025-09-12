@@ -453,8 +453,6 @@ diff_combined <- dplyr::bind_rows(diff_list)
 plot_data_combined <- dplyr::bind_rows(plot_data_list)
 cvtrip_diff_combined <- dplyr::bind_rows(cvtrip_diff_list)
 output_summarized1_combined<-dplyr::bind_rows(output_summarized1_list)
-
-
 ```
 
 ### CV per trip 
@@ -587,7 +585,8 @@ ggplot(output_summarized1_combined, aes(x=period, y=codreltrip, color = factor(c
 ggplot(output_summarized1_combined, aes(x=period, y=haddcattrip, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock catch per trip")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
 ```
 
 ### haddock keep per trip
@@ -689,6 +688,234 @@ ggplot(output_summarized1_combined, aes(x=period, y=haddkeepchoice, color = fact
 ggplot(output_summarized1_combined, aes(x=period, y=haddrelchoice, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Period", y = "Haddock release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### cod keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1_combined, aes(x=period, y=codkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod harvest per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### cod release per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1_combined, aes(x=period, y=codrelchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Cod release per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### haddock catch per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1_combined, aes(x=period, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### haddock keep per choice occasion
+```{r echo = FALSE, fig.width=10}
+ggplot(output_summarized1_combined, aes(x=period, y=haddkeepchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Period", y = "Haddock harvest per choice occassion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+## Coastwide decadal projections by month- catch outcomes at the choice occasion level  {.tabset}
+
+Catch data from 2025-04-17.
+
+```{r echo = FALSE, fig.width=10}
+# Pull in all the data and reformat for plotting 
+output_summarized1_list<-list()
+plot_data_list<-list()
+cvtrip_diff_list<-list()
+diff_list<-list()
+
+years<-c(2019, 2020, 2021)
+for(yr in years){
+  #plot data 
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast_mnth.rds"))  %>%
+    dplyr::mutate(codreltrip=codrel/ntrips,
+                  haddreltrip=haddrel/ntrips, 
+                  codrelchoice=codrel/n_choice_occasions,
+                  haddrelchoice=haddrel/n_choice_occasions, 
+                  cod_hadd_keep=codkeep+haddkeep, 
+                  cod_hadd_cat=codcat+haddcat)
+  
+  output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+  output_summarized1$copula[output_summarized1$correlation=="independent"] <- "independent"
+  output_summarized1$base_year<-yr
+  output_summarized1_list[[yr]]<-output_summarized1
+  
+  plot_data<-output_summarized1 %>% 
+    dplyr::filter(decade!=0)
+  
+  plot_data$base_year<-yr
+  plot_data_list[[yr]]<-plot_data
+  
+  #differences data CV
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast_mnth.rds"))  %>%
+    dplyr::mutate(codreltrip=codrel/ntrips,
+                  haddreltrip=haddrel/ntrips, 
+                  codrelchoice=codrel/n_choice_occasions,
+                  haddrelchoice=haddrel/n_choice_occasions, 
+                  cod_hadd_keep=codkeep+haddkeep, 
+                  cod_hadd_cat=codcat+haddcat)
+  
+  output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+  
+  output_summarized_corr<-output_summarized1 %>% 
+    dplyr::filter(correlation=="corr") %>% 
+    dplyr::filter(decade!=0) 
+  
+  output_summarized_ind<-output_summarized1 %>% 
+    dplyr::filter(correlation=="independent" ) %>% 
+    dplyr::filter(decade!=0) 
+  
+  cvtrip_diff_corr <- output_summarized_corr %>%
+    rename_with(~ paste0(.x, "_corr"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "month", "copula","decade","cvtrip_corr", "cv_choice_corr", "cv_corr", "ntrips_corr") %>%     dplyr::filter(decade!=0 )
+  
+  cvtrip_diff_ind <- output_summarized_ind %>%
+    rename_with(~ paste0(.x, "_ind"), c(cvtrip, cv_choice, cv, ntrips)) %>%
+    dplyr::select("draw", "month", "copula","decade","cvtrip_ind", "cv_choice_ind", "cv_ind", "ntrips_ind") %>%     dplyr::filter(decade!=0 )
+  
+  cvtrip_diff<-cvtrip_diff_corr %>% 
+    left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "month" )) %>%
+    mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
+           diff_cvtrip=cvtrip_corr- cvtrip_ind, 
+           diff_cv_choice=cv_choice_corr- cv_choice_ind, 
+           diff_cv=cv_corr- cv_ind)
+  
+  cvtrip_diff$base_year<-yr
+  
+  cvtrip_diff_list[[yr]]<-cvtrip_diff
+  
+  #differences data catch
+  diff_corr <- output_summarized_corr %>%
+    rename_with(~ paste0(.x, "_corr"), c(codkeep, haddkeep, codcat, haddcat, cv,
+                                         cod_hadd_keep, cod_hadd_cat, cod_tot_mort, hadd_tot_mort)) %>%
+    dplyr::select("draw", "month", "copula","decade","codkeep_corr", "haddkeep_corr", "cv_corr",
+                  "codcat_corr", "haddcat_corr", "cod_hadd_keep_corr", "cod_hadd_cat_corr", 
+                  "cod_tot_mort_corr", "hadd_tot_mort_corr") %>%   
+    dplyr::filter(decade!=0 )
+  
+  diff_ind <- output_summarized_ind %>%
+    rename_with(~ paste0(.x, "_ind"), c(codkeep, haddkeep, codcat, haddcat, cv,
+                                        cod_hadd_keep, cod_hadd_cat, cod_tot_mort, hadd_tot_mort)) %>%
+    dplyr::select("draw", "month", "copula","decade","codkeep_ind", "haddkeep_ind", "cv_ind",
+                  "codcat_ind", "haddcat_ind", "cod_hadd_keep_ind", "cod_hadd_cat_ind", 
+                  "cod_tot_mort_ind", "hadd_tot_mort_ind") %>%   
+    dplyr::filter(decade!=0 )
+  
+  diff<-diff_corr %>% 
+    left_join(diff_ind, by=c("draw", "copula","decade","month"  )) %>%
+    mutate(diff_cv=cv_corr- cv_ind,
+           diff_codkeep=codkeep_corr- codkeep_ind, 
+           diff_haddkeep=haddkeep_corr- haddkeep_ind, 
+           diff_codcat=codcat_corr- codcat_ind, 
+           diff_haddcat=haddcat_corr- haddcat_ind, 
+           diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
+           diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
+           diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
+           diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
+           pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
+           pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
+           pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
+           pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
+           pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
+           pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
+           pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
+           pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100, 
+           base_year=yr)
+  
+  diff_list[[yr]]<-diff
+  
+}
+diff_combined_mnth <- dplyr::bind_rows(diff_list)
+plot_data_combined_mnth <- dplyr::bind_rows(plot_data_list)
+cvtrip_diff_combined_mnth <- dplyr::bind_rows(cvtrip_diff_list)
+output_summarized1_combined_mnth<-dplyr::bind_rows(output_summarized1_list)
+```
+
+### cod catch per choice occasion by month and baseline year
+```{r echo = FALSE, fig.width=10}
+output_summarized1_combined_mnth_dec<-output_summarized1_combined_mnth %>% 
+  dplyr::filter(period %in% c("2019", "2020", "2021")) %>% 
+  dplyr::mutate(period2 = paste(period, month, sep = "-"))
+
+ggplot(output_summarized1_combined_mnth_dec,
+       aes(x = factor(month), y = codcatchoice)) +
+  geom_boxplot() +
+  labs(x = "Month", y = "Cod catch per choice occasion") +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  facet_wrap(~ base_year, ncol = 1) +
+  scale_x_discrete(labels = month.abb)
+```
+
+### haddock catch per choice occasion by month and baseline year
+```{r echo = FALSE, fig.width=10}
+output_summarized1_combined_mnth_dec<-output_summarized1_combined_mnth %>% 
+  dplyr::filter(period %in% c("2019", "2020", "2021")) %>% 
+  dplyr::mutate(period2 = paste(period, month, sep = "-"))
+
+ggplot(output_summarized1_combined_mnth_dec,
+       aes(x = factor(month), y = haddcatchoice)) +
+  geom_boxplot() +
+  labs(x = "Month", y = "Haddock catch per choice occasion") +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  facet_wrap(~ base_year, ncol = 1) +
+  scale_x_discrete(labels = month.abb)
+```
+
+### cod catch per choice occasion by month - Decade 1 projections
+```{r echo = FALSE, fig.width=10}
+output_summarized1_combined_mnth_dec<-output_summarized1_combined_mnth %>% 
+  dplyr::filter(period %in% c("Decade 1")) %>% 
+  dplyr::mutate(period2 = paste(period, month, sep = "-"))
+                
+ggplot(output_summarized1_combined_mnth_dec, aes(x=period2, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Month", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### haddock catch per choice occasion by month - Decade 1 projections
+```{r echo = FALSE, fig.width=10}              
+ggplot(output_summarized1_combined_mnth_dec, aes(x=period2, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Month", y = "Haddock catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### cod catch per choice occasion by month - Decade 6 projections
+```{r echo = FALSE, fig.width=10}
+output_summarized1_combined_mnth_dec<-output_summarized1_combined_mnth %>% 
+  dplyr::filter(period %in% c("Decade 6")) %>% 
+  dplyr::mutate(period2 = paste(period, month, sep = "-"))
+                
+ggplot(output_summarized1_combined_mnth_dec, aes(x=period2, y=codcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Month", y = "Cod catch per choice occasion")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### haddock catch per choice occasion by month - Decade 6 projections
+```{r echo = FALSE, fig.width=10}              
+ggplot(output_summarized1_combined_mnth_dec, aes(x=period2, y=haddcatchoice, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Month", y = "Haddock catch per choice occasion")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~ base_year, ncol = 1)
 ```
@@ -871,7 +1098,7 @@ ggplot(diff_combined, aes(x = factor(decade), y = pct_diff_cod_mort, color = fac
 
 ### Pct. diff. total haddock mortality
 ```{r echo = FALSE, fig.width=10}
-ggplot(diff, aes(x = factor(decade), y = pct_diff_hadd_mort, color = factor(copula))) +
+ggplot(diff_combined, aes(x = factor(decade), y = pct_diff_hadd_mort, color = factor(copula))) +
   geom_boxplot() +
   labs(x = "Decade", y = "% diff in total haddock mortality ((corr- ind)/ind)*100")+
   facet_wrap(~ base_year, ncol = 1)
