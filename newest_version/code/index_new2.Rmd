@@ -215,7 +215,7 @@ diff_list<-list()
 years<-c(2019, 2020, 2021)
 for(yr in years){
   
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_6-2-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1=="all") %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1) %>% 
     dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
@@ -228,7 +228,7 @@ for(yr in years){
     ) %>%
     select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, pct_both_above, pct_both_below)
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_6-2-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1=="all") %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1)%>% 
     dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
@@ -257,7 +257,7 @@ for(yr in years){
   
   
   # coastwide by state ktau data 
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_6-2-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(state=domain1) %>% 
@@ -272,7 +272,7 @@ for(yr in years){
     select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state, pct_both_above,pct_both_below)
   
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_6-2-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(state=domain1) %>% 
@@ -301,7 +301,7 @@ for(yr in years){
   k_tau_data_combined_state_list[[yr]]<-k_tau_data_combined_state
   
   # coastwide by mode ktau data 
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_6-2-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(mode=domain1) %>% 
@@ -316,7 +316,7 @@ for(yr in years){
     select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode, pct_both_above, pct_both_below)
   
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_6-2-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(mode=domain1) %>% 
@@ -347,7 +347,7 @@ for(yr in years){
   k_tau_data_combined_mode_list[[yr]]<-k_tau_data_combined_mode
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -367,7 +367,7 @@ for(yr in years){
   plot_data_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -742,7 +742,7 @@ diff_list<-list()
 years<-c(2019, 2020, 2021)
 for(yr in years){
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast_mnth.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast_mnth.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -762,7 +762,7 @@ for(yr in years){
   plot_data_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_coast_mnth.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast_mnth.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -1783,7 +1783,7 @@ years<-c(2019, 2020, 2021)
 for(yr in years){
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y",yr,"_6-2-25_reformat_mode.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y",yr,"_outliers_9-21-25_reformat_mode.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -1803,7 +1803,7 @@ for(yr in years){
   plot_data_mode_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_mode.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_mode.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -2205,7 +2205,7 @@ years<-c(2019, 2020, 2021)
 for(yr in years){
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_state.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_state.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -2225,7 +2225,7 @@ for(yr in years){
   plot_data_state_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_6-2-25_reformat_state.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_state.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
