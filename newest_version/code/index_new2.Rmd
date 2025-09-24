@@ -1,11 +1,11 @@
 ---
-title: "GoM cod and haddock RDM"
+title: "Nature Climate Change paper results"
 author: "Lou Carr-Harris"
 date: "`r Sys.Date()`"
 output:
   html_document:
-  theme: cerulean
-toc: true
+    theme: cerulean
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = N
 pkgs_to_use <- c("tidyverse", "data.table", "readxl", "haven", "stringr", "knitr",
                  "furrr", "profvis", "future", "copula", "VineCopula", "fitdistrplus",
                  "psych", "logspline", "univariateML", "ggpubr", "gridExtra", "hrbrthemes",
-                 "writexl", "sjPlot", "tictoc", "Hmisc", "plyr", "dplyr", "conflicted")
+                 "writexl", "sjPlot", "tictoc", "Hmisc", "plyr", "dplyr", "conflicted", "gt")
 
 install_if_missing <- setdiff(pkgs_to_use, rownames(installed.packages()))
 if (length(install_if_missing) > 0) install.packages(install_if_missing)
@@ -197,10 +197,111 @@ ggplot(df_filtered, aes(x = factor(period), y = dtrip, fill = cod_open)) +
   theme_minimal()
 ```  
 
+## Welfare loss from full closures, by year {.tabset}
+```{r echo = FALSE,  fig.width=10}
+# close cod and haddock
+
+yr<-2019
+close_cod19<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod and haddock.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup() 
+
+yr<-2020
+close_cod20<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod and haddock.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup()  
+
+yr<-2021
+close_cod21<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod and haddock.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup() 
+
+close_both<-rbind.fill(close_cod19,close_cod20,close_cod21) 
+
+# close cod
+yr<-2019
+close_cod19<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup() 
+
+yr<-2020
+close_cod20<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup()  
+
+yr<-2021
+close_cod21<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod.xlsx")) %>% 
+  dplyr::rename(cv=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv, tot_keep_cod_new, tot_keep_hadd_new), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  %>% 
+  dplyr::mutate(year=yr) %>% 
+  dplyr::group_by(year)  %>% 
+  summarise(mean_cv=mean(cv), sd_cv=sd(cv)) %>% 
+  dplyr::ungroup() 
+
+close_cod<-rbind.fill(close_cod19,close_cod20,close_cod21) 
+``` 
+
+### Cod closure
+```{r echo = FALSE,  fig.width=10}
+gt::gt(close_cod) %>%
+  gt::tab_header(
+    title = "Total CV from closing cod, by year",
+  ) %>%
+  gt::fmt_number(
+    columns = c(mean_cv, sd_cv),   # numeric columns to format
+    decimals = 0,                  # number of decimal places
+    use_seps = TRUE                # adds commas as thousands separators
+  )
+``` 
+
+### Cod and haddock closure
+```{r echo = FALSE,  fig.width=10}
+gt::gt(close_both) %>%
+  gt::tab_header(
+    title = "Total CV from closing both fisheries, by year",
+  ) %>%
+  gt::fmt_number(
+    columns = c(mean_cv, sd_cv),   # numeric columns to format
+    decimals = 0,                  # number of decimal places
+    use_seps = TRUE                # adds commas as thousands separators
+  )
+``` 
 
 ## Coastwide decadal projections - welfare  {.tabset}
 
-Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
+Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Projected catch-per-trip data from 2025-09-18. 
 ```{r echo = FALSE,  fig.width=10}
 
 # Pull in all the data and reformat for plotting 
@@ -210,6 +311,7 @@ k_tau_data_combined_mode_list<-list()
 output_summarized1_list<-list()
 plot_data_list<-list()
 cvtrip_diff_list<-list()
+cv_pct_list<-list()
 diff_list<-list()
 
 years<-c(2019, 2020, 2021)
@@ -367,6 +469,14 @@ for(yr in years){
   plot_data_list[[yr]]<-plot_data
   
   #differences data CV
+  
+    #pull in data for closure of both fisheries
+  closure<-read_excel(paste0(output_data_cd,"model_output_y", yr, "_outliers_9-21-25_close cod and haddock.xlsx")) %>% 
+  dplyr::rename(cv_closure=change_CS) %>% 
+  dplyr::group_by(draw)  %>% 
+  summarise(across(c(cv_closure), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
+  dplyr::ungroup()  
+  
   output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
@@ -376,6 +486,11 @@ for(yr in years){
                   cod_hadd_cat=codcat+haddcat)
   
   output_summarized1$ntrips[is.na(output_summarized1$ntrips)] <- output_summarized1$dtrip[is.na(output_summarized1$ntrips)]
+  
+  output_summarized2<-output_summarized1 %>% 
+     dplyr::mutate(
+    copula = ifelse(correlation == "independent", "independent", copula)
+  )
   
   output_summarized_corr<-output_summarized1 %>% 
     dplyr::filter(correlation=="corr") %>% 
@@ -399,10 +514,22 @@ for(yr in years){
            diff_cvtrip=cvtrip_corr- cvtrip_ind, 
            diff_cv_choice=cv_choice_corr- cv_choice_ind, 
            diff_cv=cv_corr- cv_ind)
+
   
   cvtrip_diff$base_year<-yr
   
   cvtrip_diff_list[[yr]]<-cvtrip_diff
+  
+  cv_pct<-  output_summarized2 %>% 
+    dplyr::filter(decade!=0) %>% 
+    dplyr::select("draw", "copula","decade","cv") %>% 
+    dplyr::left_join(closure, by="draw") %>% 
+    dplyr::mutate(cv_pct_total_value=(cv/cv_closure)*100) %>% 
+    dplyr::mutate(base_year=yr)
+  
+  cv_pct_list[[yr]]<-cv_pct
+  
+  
   
   #differences data catch
   diff_corr <- output_summarized_corr %>%
@@ -452,6 +579,8 @@ k_tau_data_combined_mode <- dplyr::bind_rows(k_tau_data_combined_mode_list)
 diff_combined <- dplyr::bind_rows(diff_list)
 plot_data_combined <- dplyr::bind_rows(plot_data_list)
 cvtrip_diff_combined <- dplyr::bind_rows(cvtrip_diff_list)
+cv_pct_combined <- dplyr::bind_rows(cv_pct_list)
+
 output_summarized1_combined<-dplyr::bind_rows(output_summarized1_list)
 ```
 
@@ -510,6 +639,14 @@ ggplot(plot_data_combined, aes(x = factor(decade), y = cv, color = factor(copula
   facet_wrap(~ base_year, ncol = 1)
 ```
 
+### Total CV as % of total value
+```{r echo = FALSE, fig.width=10}
+ggplot(cv_pct_combined , aes(x = factor(decade), y = cv_pct_total_value, color = factor(copula))) +
+  geom_boxplot() +
+  labs(x = "Decade", y = "Compensating variation as % of total value")+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
 ### Difference in total CV (corr. - ind.)
 ```{r echo = FALSE, fig.width=10}
 # cvtrip_diff_combined1<-cvtrip_diff_combined %>% dplyr::filter(base_year==2019)
@@ -551,7 +688,7 @@ ggplot(cvtrip_diff_combined, aes(x = factor(decade), y = diff_ntrips, color = fa
 
 ## Coastwide decadal projections - catch outcomes at the trip level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per trip
 ```{r echo = FALSE, fig.width=10}
@@ -636,7 +773,7 @@ ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below, color = factor
 
 ## Coastwide decadal projections - catch outcomes at the choice occasion level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per choice occasion
 ```{r echo = FALSE, fig.width=10}
@@ -730,7 +867,7 @@ ggplot(output_summarized1_combined, aes(x=period, y=haddkeepchoice, color = fact
 
 ## Coastwide decadal projections by month- catch outcomes at the choice occasion level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ```{r echo = FALSE, fig.width=10}
 # Pull in all the data and reformat for plotting 
@@ -1770,7 +1907,7 @@ final_plot
 
 ## Fishing-mode level decadal projections - welfare  {.tabset}
 
-Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
+Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Projected catch-per-trip data from 2025-09-18. 
 ```{r echo = FALSE,  fig.width=10}
 
 # Pull in all the data and reformat for plotting 
@@ -1955,7 +2092,7 @@ ggplot(cvtrip_diff_mode_combined, aes(x = factor(decade), y = diff_ntrips, color
 
 ## Fishing-mode level decadal projections - catch outcomes at the trip level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per trip
 ```{r echo = FALSE, fig.width=10}
@@ -2031,7 +2168,7 @@ ggplot(k_tau_data_combined_mode, aes(x=decade, y=k_tau_keep_est, color = factor(
 
 ## Fishing-mode decadal projections - catch outcomes at the choice occasion level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per choice occasion
 ```{r echo = FALSE, fig.width=10}
@@ -2193,7 +2330,7 @@ ggplot(diff_mode_combined, aes(x = factor(decade), y = diff_cod_hadd_cat, color 
 
 ## State-level decadal projections - welfare  {.tabset}
 
-Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Catch data from 2025-04-17. 
+Each tab contains different projected fishery outcomes across copula models for the case of dependence, independence, and the difference between dependence and independence. Projected catch-per-trip data from 2025-09-18. 
 ```{r echo = FALSE,  fig.width=10}
 # Pull in all the data and reformat for plotting 
 output_summarized1_state_list<-list()
@@ -2395,7 +2532,7 @@ ggplot(cvtrip_diff_state_combined, aes(x = factor(decade), y = diff_ntrips, colo
 
 ## State-level  level decadal projections - catch outcomes at the trip level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per trip
 ```{r echo = FALSE, fig.width=10}
@@ -2471,7 +2608,7 @@ ggplot(k_tau_data_combined_state, aes(x=decade, y=k_tau_keep_est, color = factor
 
 ## State-level decadal projections - catch outcomes at the choice occasion level  {.tabset}
 
-Catch data from 2025-04-17.
+Projected catch-per-trip data from 2025-09-18.
 
 ### cod catch per choice occasion
 ```{r echo = FALSE, fig.width=10}
