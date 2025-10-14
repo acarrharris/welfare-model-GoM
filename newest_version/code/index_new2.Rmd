@@ -114,7 +114,7 @@ head(final_result)
 ## Regulations, effort by state and year {.tabset}
 ```{r echo = FALSE,  fig.width=10}
 # Load data
-df<-data.frame(read_csv("E:/Lou's projects/welfare-model-GoM/input_data/directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)
+df<-data.frame(read_csv("E:/Lou_projects/welfare-model-GoM/input_data/directed trips and regulations 2010_2020_disaggregated.csv"), show_col_types = FALSE)
 
 # Filter for 2019-2021
 df_filtered <- df %>%
@@ -317,10 +317,19 @@ diff_list<-list()
 years<-c(2019, 2020, 2021)
 for(yr in years){
   
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_10-8-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1=="all") %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1) %>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)
   
   ktau_annual_long <- ktau_annual %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -328,12 +337,23 @@ for(yr in years){
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, pct_both_above, pct_both_below)
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est,
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_"))
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_10-8-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1=="all") %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p, -domain1)%>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)
   
   ktau_annual_ind_long <- ktau_annual_ind %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -341,7 +361,10 @@ for(yr in years){
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, pct_both_above, pct_both_below) %>% 
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est,
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_")) %>%  
+    dplyr::mutate(copula2=copula) %>% 
     dplyr::mutate(copula="independent")
   
   k_tau_data_combined_coast<-ktau_annual_ind_long %>%
@@ -359,11 +382,20 @@ for(yr in years){
   
   
   # coastwide by state ktau data 
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_10-8-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(state=domain1) %>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)  
   
   ktau_annual_long <- ktau_annual %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -371,14 +403,25 @@ for(yr in years){
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state, pct_both_above,pct_both_below)
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state,
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_"))
   
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_10-8-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("ME", "NH", "MA")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(state=domain1) %>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)
   
   ktau_annual_ind_long <- ktau_annual_ind %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -386,7 +429,9 @@ for(yr in years){
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state, pct_both_above, pct_both_below) %>% 
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, state,
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_")) %>% 
     dplyr::mutate(copula="independent")
   
   k_tau_data_combined_state<-ktau_annual_ind_long %>% 
@@ -403,26 +448,45 @@ for(yr in years){
   k_tau_data_combined_state_list[[yr]]<-k_tau_data_combined_state
   
   # coastwide by mode ktau data 
-  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_9-21-25.xlsx"))
+  ktau_data<-read_excel(paste0(output_data_cd,"ktau_output_y", yr,"_outliers_10-8-25.xlsx"))
   ktau_annual<-ktau_data %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(mode=domain1) %>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
-  
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)  
   ktau_annual_long <- ktau_annual %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
            correlation = parts[, 1],
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode, pct_both_above, pct_both_below)
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode, 
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_"))
   
   
-  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_9-21-25_ind.xlsx"))
+  ktau_data_ind<-read_excel(paste0(output_data_cd,"ktau_output_y", yr, "_outliers_10-8-25_ind.xlsx"))
   ktau_annual_ind<-ktau_data_ind %>% filter(month==0 & domain1 %in% c("pr", "fh")) %>% 
     dplyr::select(-k_tau_catch_p, -k_tau_keep_p) %>% 
     dplyr::rename(mode=domain1) %>% 
-    dplyr::mutate(pct_both_above=(both_above/2000)*100, pct_both_below=(both_below/2000)*100)
+    dplyr::mutate(pct_both_above10=(both_above_10/2000)*100,
+                  pct_both_below10=(both_below_10/2000)*100,
+                  pct_both_above25=(both_above_25/2000)*100,
+                  pct_both_below25=(both_below_25/2000)*100,
+                  pct_both_above50=(both_above_50/2000)*100,
+                  pct_both_below50=(both_below_50/2000)*100,
+                  pct_both_above75=(both_above_75/2000)*100,
+                  pct_both_below75=(both_below_75/2000)*100,
+                  pct_both_above90=(both_above_90/2000)*100,
+                  pct_both_below90=(both_below_90/2000)*100)
   
   ktau_annual_ind_long <- ktau_annual_ind %>%
     mutate(parts = str_split(domain, "_", simplify = TRUE),
@@ -430,7 +494,9 @@ for(yr in years){
            copula = str_extract(parts[, 2], "^[a-zA-Z]+"),
            decade = str_extract(parts[, 2], "[0-9]+")
     ) %>%
-    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode, pct_both_above, pct_both_below) %>% 
+    select(draw, correlation, copula, decade, k_tau_keep_est, k_tau_catch_est, mode,
+                dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_")) %>% 
     dplyr::mutate(copula="independent")
   
   k_tau_data_combined_mode<-ktau_annual_ind_long %>% 
@@ -449,7 +515,7 @@ for(yr in years){
   k_tau_data_combined_mode_list[[yr]]<-k_tau_data_combined_mode
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_coast.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -477,7 +543,7 @@ for(yr in years){
   summarise(across(c(cv_closure), \(x) sum(x, na.rm = TRUE)), .groups="drop") %>% 
   dplyr::ungroup()  
   
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_coast.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -510,10 +576,10 @@ for(yr in years){
   
   cvtrip_diff<-cvtrip_diff_corr %>% 
     left_join(cvtrip_diff_ind, by=c("draw", "copula","decade" )) %>%
-    mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
-           diff_cvtrip=cvtrip_corr- cvtrip_ind, 
-           diff_cv_choice=cv_choice_corr- cv_choice_ind, 
-           diff_cv=cv_corr- cv_ind)
+    mutate(diff_ntrips=ntrips_ind-ntrips_corr, 
+           diff_cvtrip=cvtrip_ind-cvtrip_corr, 
+           diff_cv_choice=cv_choice_ind-cv_choice_corr , 
+           diff_cv=cv_ind-cv_corr)
 
   
   cvtrip_diff$base_year<-yr
@@ -550,24 +616,29 @@ for(yr in years){
   
   diff<-diff_corr %>% 
     left_join(diff_ind, by=c("draw", "copula","decade" )) %>%
-    mutate(diff_cv=cv_corr- cv_ind,
-           diff_codkeep=codkeep_corr- codkeep_ind, 
-           diff_haddkeep=haddkeep_corr- haddkeep_ind, 
-           diff_codcat=codcat_corr- codcat_ind, 
-           diff_haddcat=haddcat_corr- haddcat_ind, 
-           diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
-           diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
-           diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
-           diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
-           pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
-           pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
-           pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
-           pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
-           pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
-           pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
-           pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
-           pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100, 
-           base_year=yr)
+    mutate(
+      # Absolute Difference: Difference = Ind - Corr
+      diff_cv           = cv_ind - cv_corr,
+      diff_codkeep      = codkeep_ind - codkeep_corr,
+      diff_haddkeep     = haddkeep_ind - haddkeep_corr,
+      diff_codcat       = codcat_ind - codcat_corr,
+      diff_haddcat      = haddcat_ind - haddcat_corr,
+      diff_cod_hadd_keep = cod_hadd_keep_ind - cod_hadd_keep_corr,
+      diff_cod_hadd_cat = cod_hadd_cat_ind - cod_hadd_cat_corr,
+      diff_cod_mort     = cod_tot_mort_ind - cod_tot_mort_corr,
+      diff_hadd_mort    = hadd_tot_mort_ind - hadd_tot_mort_corr,
+      
+      # Percentage Difference: Pct Diff = ((Ind - Corr) / Corr) * 100
+      pct_diff_codkeep   = ((codkeep_ind - codkeep_corr) / codkeep_corr) * 100,
+      pct_diff_haddkeep  = ((haddkeep_ind - haddkeep_corr) / haddkeep_corr) * 100,
+      pct_diff_codcat    = ((codcat_ind - codcat_corr) / codcat_corr) * 100,
+      pct_diff_haddcat   = ((haddcat_ind - haddcat_corr) / haddcat_corr) * 100,
+      pct_diff_cod_hadd_keep = ((cod_hadd_keep_ind - cod_hadd_keep_corr) / cod_hadd_keep_corr) * 100,
+      pct_diff_cod_hadd_cat  = ((cod_hadd_cat_ind - cod_hadd_cat_corr) / cod_hadd_cat_corr) * 100,
+      pct_diff_cod_mort  = ((cod_tot_mort_ind - cod_tot_mort_corr) / cod_tot_mort_corr) * 100,
+      pct_diff_hadd_mort = ((hadd_tot_mort_ind - hadd_tot_mort_corr) / hadd_tot_mort_corr) * 100,
+       
+      base_year=yr)
   
   diff_list[[yr]]<-diff
   
@@ -580,8 +651,44 @@ diff_combined <- dplyr::bind_rows(diff_list)
 plot_data_combined <- dplyr::bind_rows(plot_data_list)
 cvtrip_diff_combined <- dplyr::bind_rows(cvtrip_diff_list)
 cv_pct_combined <- dplyr::bind_rows(cv_pct_list)
-
 output_summarized1_combined<-dplyr::bind_rows(output_summarized1_list)
+
+cv_pct_combined_filtered<-cv_pct_combined %>% 
+  dplyr::filter(copula!="independent") %>% 
+  dplyr::select(copula, draw, decade, cv_closure, base_year)
+
+cvtrip_diff_combined<-cvtrip_diff_combined %>% 
+  dplyr::left_join(cv_pct_combined_filtered, by=c("copula", "draw", "decade", "base_year")) %>% 
+  dplyr::mutate(diff_cv_total_cv=(diff_cv/cv_closure)*100)
+
+k_tau_corr<-k_tau_data_combined_coast %>% 
+  dplyr::filter(correlation=="corr") %>% 
+  dplyr::select(draw, copula, decade, base_year, dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_")) %>% 
+  dplyr::rename_with(~ paste0(., "_corr"), dplyr::starts_with("pct_both_"))%>% 
+  dplyr::rename_with(~ paste0(., "_corr"), dplyr::starts_with("both_"))
+
+k_tau_ind<-k_tau_data_combined_coast %>% 
+  dplyr::filter(correlation=="ind") %>% 
+  dplyr::select(-copula, -correlation) %>% 
+  dplyr::rename(copula=copula2) %>% 
+  dplyr::select(draw, copula, decade, base_year, dplyr::matches("^pct_.*_(below|above)(10|25|50|75|90)$"), 
+                dplyr::matches("^both_(below|above)_")) 
+
+ktau_combine2<-k_tau_corr %>% 
+  dplyr::left_join(k_tau_ind, by=c("draw", "copula", "decade","base_year"))
+
+ktau_combine2<-ktau_combine2 %>% 
+  dplyr::mutate(pct_diff_num_above10=((both_above_10-both_above_10_corr)/both_above_10_corr)*100, 
+                pct_diff_num_below10=((both_below_10-both_below_10_corr)/both_below_10_corr)*100, 
+                pct_diff_num_above25=((both_above_25-both_above_25_corr)/both_above_25_corr)*100, 
+                pct_diff_num_below25=((both_below_25-both_below_25_corr)/both_below_25_corr)*100, 
+                pct_diff_num_above50=((both_above_50-both_above_50_corr)/both_above_50_corr)*100, 
+                pct_diff_num_below50=((both_below_50-both_below_50_corr)/both_below_50_corr)*100, 
+                pct_diff_num_above75=((both_above_75-both_above_75_corr)/both_above_75_corr)*100, 
+                pct_diff_num_below75=((both_below_75-both_below_75_corr)/both_below_75_corr)*100, 
+                pct_diff_num_above90=((both_above_90-both_above_90_corr)/both_above_90_corr)*100, 
+                pct_diff_num_below90=((both_below_90-both_below_90_corr)/both_below_90_corr)*100)
 ```
 
 ### CV per trip 
@@ -762,9 +869,154 @@ ggplot(k_tau_data_combined_coast, aes(x=decade, y=k_tau_keep_est, color = factor
   facet_wrap(~ base_year, ncol = 1)
 ```
 
-### % trips catch equal or below median
+## Coastwide decadal projections - % of trips with catch of both species above/below X percentile  {.tabset}
+
+### above 10th
 ```{r echo = FALSE, fig.width=10}
-ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below, color = factor(copula)))+
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_above10, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### above 25th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_above25, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### above 50th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_above50, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### above 75th
+```{r echo = FALSE, fig.width=8}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_above75, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### above 90th
+```{r echo = FALSE, fig.width=8}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_above90, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### below 10th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below10, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### below 25th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below25, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+
+# summary_data<- k_tau_data_combined_coast %>% 
+#   dplyr::group_by(base_year, correlation) %>% 
+#   dplyr::summarise(pct_both_below50=mean(pct_both_below50), 
+#                    pct_both_above50=mean(pct_both_above50), 
+#                    both_below50=(mean(pct_both_below50)/100)*2000, 
+#                    both_above50=(mean(pct_both_above50)/100)*2000) 
+#                    
+```
+
+### below 50th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below50, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### below 75th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below75, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### below 90th
+```{r echo = FALSE, fig.width=10}
+ggplot(k_tau_data_combined_coast, aes(x=decade, y=pct_both_below90, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch above 50th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_above50, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch above 75th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_above75, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch above 90th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_above90, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch below 35th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_below25, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch below 50th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_below50, color = factor(copula)))+
+  geom_boxplot() +
+  labs(x = "Decade", y = "%")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~ base_year, ncol = 1)
+```
+
+### % diff. trips catch below 75th [(ind-corr)/corr]*100
+```{r echo = FALSE, fig.width=10}
+ggplot(ktau_combine2 , aes(x=decade, y=pct_diff_num_below75, color = factor(copula)))+
   geom_boxplot() +
   labs(x = "Decade", y = "%")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
@@ -879,7 +1131,7 @@ diff_list<-list()
 years<-c(2019, 2020, 2021)
 for(yr in years){
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast_mnth.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_coast_mnth.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -899,7 +1151,7 @@ for(yr in years){
   plot_data_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_coast_mnth.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_coast_mnth.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -927,10 +1179,10 @@ for(yr in years){
   
   cvtrip_diff<-cvtrip_diff_corr %>% 
     left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "month" )) %>%
-    mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
-           diff_cvtrip=cvtrip_corr- cvtrip_ind, 
-           diff_cv_choice=cv_choice_corr- cv_choice_ind, 
-           diff_cv=cv_corr- cv_ind)
+    mutate(diff_ntrips=ntrips_ind-ntrips_corr, 
+           diff_cvtrip=cvtrip_ind-cvtrip_corr, 
+           diff_cv_choice=cv_choice_ind-cv_choice_corr , 
+           diff_cv=cv_ind-cv_corr)
   
   cvtrip_diff$base_year<-yr
   
@@ -955,24 +1207,28 @@ for(yr in years){
   
   diff<-diff_corr %>% 
     left_join(diff_ind, by=c("draw", "copula","decade","month"  )) %>%
-    mutate(diff_cv=cv_corr- cv_ind,
-           diff_codkeep=codkeep_corr- codkeep_ind, 
-           diff_haddkeep=haddkeep_corr- haddkeep_ind, 
-           diff_codcat=codcat_corr- codcat_ind, 
-           diff_haddcat=haddcat_corr- haddcat_ind, 
-           diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
-           diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
-           diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
-           diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
-           pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
-           pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
-           pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
-           pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
-           pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
-           pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
-           pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
-           pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100, 
-           base_year=yr)
+    mutate(# Absolute Difference: Difference = Ind - Corr
+      diff_cv           = cv_ind - cv_corr,
+      diff_codkeep      = codkeep_ind - codkeep_corr,
+      diff_haddkeep     = haddkeep_ind - haddkeep_corr,
+      diff_codcat       = codcat_ind - codcat_corr,
+      diff_haddcat      = haddcat_ind - haddcat_corr,
+      diff_cod_hadd_keep = cod_hadd_keep_ind - cod_hadd_keep_corr,
+      diff_cod_hadd_cat = cod_hadd_cat_ind - cod_hadd_cat_corr,
+      diff_cod_mort     = cod_tot_mort_ind - cod_tot_mort_corr,
+      diff_hadd_mort    = hadd_tot_mort_ind - hadd_tot_mort_corr,
+      
+      # Percentage Difference: Pct Diff = ((Ind - Corr) / Corr) * 100
+      pct_diff_codkeep   = ((codkeep_ind - codkeep_corr) / codkeep_corr) * 100,
+      pct_diff_haddkeep  = ((haddkeep_ind - haddkeep_corr) / haddkeep_corr) * 100,
+      pct_diff_codcat    = ((codcat_ind - codcat_corr) / codcat_corr) * 100,
+      pct_diff_haddcat   = ((haddcat_ind - haddcat_corr) / haddcat_corr) * 100,
+      pct_diff_cod_hadd_keep = ((cod_hadd_keep_ind - cod_hadd_keep_corr) / cod_hadd_keep_corr) * 100,
+      pct_diff_cod_hadd_cat  = ((cod_hadd_cat_ind - cod_hadd_cat_corr) / cod_hadd_cat_corr) * 100,
+      pct_diff_cod_mort  = ((cod_tot_mort_ind - cod_tot_mort_corr) / cod_tot_mort_corr) * 100,
+      pct_diff_hadd_mort = ((hadd_tot_mort_ind - hadd_tot_mort_corr) / hadd_tot_mort_corr) * 100,
+           
+     base_year=yr)
   
   diff_list[[yr]]<-diff
   
@@ -1920,7 +2176,7 @@ years<-c(2019, 2020, 2021)
 for(yr in years){
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y",yr,"_outliers_9-21-25_reformat_mode.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y",yr,"_outliers_10-8-25_reformat_mode.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -1940,7 +2196,7 @@ for(yr in years){
   plot_data_mode_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_mode.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_mode.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -1968,10 +2224,10 @@ for(yr in years){
   
   cvtrip_diff<-cvtrip_diff_corr %>% 
     left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "mode" )) %>%
-    mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
-           diff_cvtrip=cvtrip_corr- cvtrip_ind, 
-           diff_cv_choice=cv_choice_corr- cv_choice_ind, 
-           diff_cv=cv_corr- cv_ind)
+    mutate(diff_ntrips=ntrips_ind-ntrips_corr, 
+           diff_cvtrip=cvtrip_ind-cvtrip_corr, 
+           diff_cv_choice=cv_choice_ind-cv_choice_corr , 
+           diff_cv=cv_ind-cv_corr)
   
   cvtrip_diff$base_year<-yr
   
@@ -1996,24 +2252,28 @@ for(yr in years){
   
   diff<-diff_corr %>% 
     left_join(diff_ind, by=c("draw", "copula","decade", "mode"  )) %>%
-    mutate(diff_cv=cv_corr- cv_ind,
-           diff_codkeep=codkeep_corr- codkeep_ind, 
-           diff_haddkeep=haddkeep_corr- haddkeep_ind, 
-           diff_codcat=codcat_corr- codcat_ind, 
-           diff_haddcat=haddcat_corr- haddcat_ind, 
-           diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
-           diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
-           diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
-           diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
-           pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
-           pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
-           pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
-           pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
-           pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
-           pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
-           pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
-           pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100, 
-           base_year=yr)
+    mutate(# Absolute Difference: Difference = Ind - Corr
+      diff_cv           = cv_ind - cv_corr,
+      diff_codkeep      = codkeep_ind - codkeep_corr,
+      diff_haddkeep     = haddkeep_ind - haddkeep_corr,
+      diff_codcat       = codcat_ind - codcat_corr,
+      diff_haddcat      = haddcat_ind - haddcat_corr,
+      diff_cod_hadd_keep = cod_hadd_keep_ind - cod_hadd_keep_corr,
+      diff_cod_hadd_cat = cod_hadd_cat_ind - cod_hadd_cat_corr,
+      diff_cod_mort     = cod_tot_mort_ind - cod_tot_mort_corr,
+      diff_hadd_mort    = hadd_tot_mort_ind - hadd_tot_mort_corr,
+      
+      # Percentage Difference: Pct Diff = ((Ind - Corr) / Corr) * 100
+      pct_diff_codkeep   = ((codkeep_ind - codkeep_corr) / codkeep_corr) * 100,
+      pct_diff_haddkeep  = ((haddkeep_ind - haddkeep_corr) / haddkeep_corr) * 100,
+      pct_diff_codcat    = ((codcat_ind - codcat_corr) / codcat_corr) * 100,
+      pct_diff_haddcat   = ((haddcat_ind - haddcat_corr) / haddcat_corr) * 100,
+      pct_diff_cod_hadd_keep = ((cod_hadd_keep_ind - cod_hadd_keep_corr) / cod_hadd_keep_corr) * 100,
+      pct_diff_cod_hadd_cat  = ((cod_hadd_cat_ind - cod_hadd_cat_corr) / cod_hadd_cat_corr) * 100,
+      pct_diff_cod_mort  = ((cod_tot_mort_ind - cod_tot_mort_corr) / cod_tot_mort_corr) * 100,
+      pct_diff_hadd_mort = ((hadd_tot_mort_ind - hadd_tot_mort_corr) / hadd_tot_mort_corr) * 100,
+      
+      base_year=yr)
   
   diff_mode_list[[yr]]<-diff
   
@@ -2342,7 +2602,7 @@ years<-c(2019, 2020, 2021)
 for(yr in years){
   
   #plot data 
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_state.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_state.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -2362,7 +2622,7 @@ for(yr in years){
   plot_data_state_list[[yr]]<-plot_data
   
   #differences data CV
-  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_9-21-25_reformat_state.rds"))  %>%
+  output_summarized1<- read_rds(paste0(output_data_cd,"model_output_y", yr,"_outliers_10-8-25_reformat_state.rds"))  %>%
     dplyr::mutate(codreltrip=codrel/ntrips,
                   haddreltrip=haddrel/ntrips, 
                   codrelchoice=codrel/n_choice_occasions,
@@ -2390,10 +2650,10 @@ for(yr in years){
   
   cvtrip_diff<-cvtrip_diff_corr %>% 
     left_join(cvtrip_diff_ind, by=c("draw", "copula","decade", "state" )) %>%
-    mutate(diff_ntrips=ntrips_corr- ntrips_ind, 
-           diff_cvtrip=cvtrip_corr- cvtrip_ind, 
-           diff_cv_choice=cv_choice_corr- cv_choice_ind, 
-           diff_cv=cv_corr- cv_ind)
+    mutate(diff_ntrips=ntrips_ind-ntrips_corr, 
+           diff_cvtrip=cvtrip_ind-cvtrip_corr, 
+           diff_cv_choice=cv_choice_ind-cv_choice_corr , 
+           diff_cv=cv_ind-cv_corr)
   
   cvtrip_diff$base_year<-yr
   
@@ -2418,24 +2678,28 @@ for(yr in years){
   
   diff<-diff_corr %>% 
     left_join(diff_ind, by=c("draw", "copula","decade", "state"  )) %>%
-    mutate(diff_cv=cv_corr- cv_ind,
-           diff_codkeep=codkeep_corr- codkeep_ind, 
-           diff_haddkeep=haddkeep_corr- haddkeep_ind, 
-           diff_codcat=codcat_corr- codcat_ind, 
-           diff_haddcat=haddcat_corr- haddcat_ind, 
-           diff_cod_hadd_keep=cod_hadd_keep_corr- cod_hadd_keep_ind, 
-           diff_cod_hadd_cat=cod_hadd_cat_corr- cod_hadd_cat_ind, 
-           diff_cod_mort=cod_tot_mort_corr- cod_tot_mort_ind, 
-           diff_hadd_mort=hadd_tot_mort_corr- hadd_tot_mort_ind, 
-           pct_diff_codkeep=((codkeep_corr- codkeep_ind)/codkeep_ind)*100, 
-           pct_diff_haddkeep=((haddkeep_corr- haddkeep_ind)/haddkeep_ind)*100, 
-           pct_diff_codcat=((codcat_corr- codcat_ind)/codcat_ind)*100, 
-           pct_diff_haddcat=((haddcat_corr- haddcat_ind)/haddcat_ind)*100, 
-           pct_diff_cod_hadd_keep=((cod_hadd_keep_corr- cod_hadd_keep_ind)/cod_hadd_keep_ind)*100, 
-           pct_diff_cod_hadd_cat=((cod_hadd_cat_corr- cod_hadd_cat_ind)/cod_hadd_cat_ind)*100, 
-           pct_diff_cod_mort=((cod_tot_mort_corr- cod_tot_mort_ind)/cod_tot_mort_ind)*100, 
-           pct_diff_hadd_mort=((hadd_tot_mort_corr- hadd_tot_mort_ind)/hadd_tot_mort_ind)*100, 
-           base_year=yr)
+    mutate(# Absolute Difference: Difference = Ind - Corr
+      diff_cv           = cv_ind - cv_corr,
+      diff_codkeep      = codkeep_ind - codkeep_corr,
+      diff_haddkeep     = haddkeep_ind - haddkeep_corr,
+      diff_codcat       = codcat_ind - codcat_corr,
+      diff_haddcat      = haddcat_ind - haddcat_corr,
+      diff_cod_hadd_keep = cod_hadd_keep_ind - cod_hadd_keep_corr,
+      diff_cod_hadd_cat = cod_hadd_cat_ind - cod_hadd_cat_corr,
+      diff_cod_mort     = cod_tot_mort_ind - cod_tot_mort_corr,
+      diff_hadd_mort    = hadd_tot_mort_ind - hadd_tot_mort_corr,
+      
+      # Percentage Difference: Pct Diff = ((Ind - Corr) / Corr) * 100
+      pct_diff_codkeep   = ((codkeep_ind - codkeep_corr) / codkeep_corr) * 100,
+      pct_diff_haddkeep  = ((haddkeep_ind - haddkeep_corr) / haddkeep_corr) * 100,
+      pct_diff_codcat    = ((codcat_ind - codcat_corr) / codcat_corr) * 100,
+      pct_diff_haddcat   = ((haddcat_ind - haddcat_corr) / haddcat_corr) * 100,
+      pct_diff_cod_hadd_keep = ((cod_hadd_keep_ind - cod_hadd_keep_corr) / cod_hadd_keep_corr) * 100,
+      pct_diff_cod_hadd_cat  = ((cod_hadd_cat_ind - cod_hadd_cat_corr) / cod_hadd_cat_corr) * 100,
+      pct_diff_cod_mort  = ((cod_tot_mort_ind - cod_tot_mort_corr) / cod_tot_mort_corr) * 100,
+      pct_diff_hadd_mort = ((hadd_tot_mort_ind - hadd_tot_mort_corr) / hadd_tot_mort_corr) * 100,
+      
+      base_year=yr)
   
   diff_state_list[[yr]]<-diff
   
