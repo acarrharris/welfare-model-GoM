@@ -1,58 +1,26 @@
 
+set.seed(seed)
 
 p_star_cod <- p_star_cod_variable
 p_star_hadd<-p_star_hadd_variable
-
-
-
-#profvis::profvis({
-#y_string<-as.character(y)
-#catch_data_all1<-catch_data_all_split[[y_string]] 
-
-
-# Input the calibration output which contains the number of choice occasions needed to simulate
-#calibration_data_all <- readRDS(paste0(output_data_cd, "calibration_data_2021", "_", x, ".rds"))
-
 
 
 ######################################
 ##   Begin simulating trip outcomes ##
 ######################################
 
-# catch_data <- catch_data_all1 %>%
-#   dplyr::group_by(period2) %>%
-#   dplyr::slice_sample(n = n_drawz * n_catch_draws, replace = TRUE)   %>%
-#   dplyr::mutate(catch_draw = rep(1:n_catch_draws, length.out = n_drawz * n_catch_draws),
-#                 tripid = rep(1:n_drawz, each = n_catch_draws)) %>%
-#   dplyr::ungroup() %>% 
-#   dplyr::right_join(regs_check, by="period2") %>% 
-#   dplyr::select(-dtrip) 
-catch_data_all_split <- data.frame(read_csv(paste0(input_data_cd, "calib_catch_yr", y, "_draw", i, ".csv"), show_col_types = FALSE))
-
+# Cod 
 catch_data <- catch_data_all_split %>%
   dplyr::right_join(regs_check, by="period2") %>% 
   dplyr::select(-dtrip) 
-# 
-# catch_data <- catch_data_all %>%
-#   dplyr::right_join(regs_check, by="period2") %>% 
-#   dplyr::select(-dtrip) 
-
-
-
-#Here we can loop around the the suffix on the catch variables 
-catch_data0 <- catch_data  %>% 
-  dplyr::select(catch_draw, mode,month, area, state, period2, tripid, tot_cat_cod, tot_cat_hadd)
-
 
 catch_data1<- catch_data  %>% 
   dplyr::select(catch_draw, mode,month, area, state, period2, tripid, tot_cat_cod, tot_cat_hadd) %>% 
   dplyr::rename(tot_cod_catch=tot_cat_cod, tot_hadd_catch=tot_cat_hadd)
 
-
 cod_hadd_catch_data <- catch_data1
 
-rm(catch_data0, catch_data)
-
+rm(catch_data)
 
 
 # subset trips with zero catch, as no size draws are required
@@ -60,9 +28,8 @@ cod_zero_catch <- catch_data1 %>%
   dplyr::filter(tot_cod_catch == 0) %>% 
   dplyr::select(-c("mode", "area", "state"))
 
-
 #remove trips with zero summer flounder catch
-catch_data1 <- filter( catch_data1, tot_cod_catch > 0) 
+catch_data1 <- filter(catch_data1, tot_cod_catch > 0) 
 catch_data1<-as.data.table(catch_data1)
 
 #expand the sf_catch_data so that each row represents a fish
@@ -71,8 +38,7 @@ row_inds <- seq_len(nrow(catch_data1))
 catch_data1<-  catch_data1 %>%  
   slice(rep(row_inds,tot_cod_catch))   
 
-
-#########New code for assigning keeps and releases
+# Assign catch as keeps and releases
 # Assuming catch_data1 and regs are already data.tables
 regs<-as.data.table(regs)
 
@@ -86,7 +52,7 @@ catch_data_cod <- regs[catch_data_cod, nomatch = 0]
 # Add a uniform random number column
 catch_data_cod[, uniform := runif(.N)]
 
-# Calculate posskeep
+# Calculate possible keeps
 catch_data_cod[, posskeep := ifelse(uniform >= p_star_cod, 1, 0)]
 
 # Group by and calculate cumulative sum of posskeep
@@ -94,8 +60,7 @@ catch_data_cod[, csum_keep := cumsum(posskeep), by = .(period2, tripid, catch_dr
 
 # Calculate keep_adj
 catch_data_cod[, keep_adj := fifelse(cod_bag > 0, 
-                                     fifelse(csum_keep <= cod_bag & posskeep == 1, 1, 0), 
-                                     0)]
+                                     fifelse(csum_keep <= cod_bag & posskeep == 1, 1, 0),0)]
 
 # Calculate keep_tot and release
 catch_data_cod[, `:=`(
@@ -105,9 +70,8 @@ catch_data_cod[, `:=`(
 
 # Select and rename columns
 catch_data_cod <- catch_data_cod[, .(tripid, keep = keep_tot, release, period2, catch_draw, month)]
-###end new code 
 
-
+# Aggregate a catch within a draw
 summed_catch_data <- catch_data_cod %>%
   as.data.table() %>%
   .[,lapply(.SD, sum), by =c("period2", "catch_draw", "tripid", "month" ), .SDcols = c("keep", "release")]
@@ -117,18 +81,18 @@ trip_data <- summed_catch_data %>%
          tot_rel_cod = release) %>% 
   dplyr::bind_rows(cod_zero_catch) %>% 
   mutate_if(is.numeric, replace_na, replace = 0) %>% 
-  dplyr::select(-c("tot_cod_catch", "tot_hadd_catch"))
+  dplyr::select(-c("tot_cod_catch", "tot_hadd_catch")) 
 
 
 
-#######haddock
+# Haddock
 
 # subset trips with zero catch, as no size draws are required
 hadd_zero_catch <- cod_hadd_catch_data %>% 
   dplyr::filter(tot_hadd_catch == 0) %>% 
   dplyr::select(-c("mode", "area", "state"))
 
-#remove trips with zero summer flounder catch
+#remove trips with zero Haddock catch
 hadd_catch_data <- filter(cod_hadd_catch_data, tot_hadd_catch > 0) 
 hadd_catch_data<-as.data.table(hadd_catch_data)
 
@@ -140,7 +104,6 @@ hadd_catch_data<- hadd_catch_data %>%
 
 rownames(hadd_catch_data) <- NULL
 
-###new code for assigning keeps to releases
 # Assuming hadd_catch_data and regs are already data.tables
 setkey(hadd_catch_data, period2)
 setkey(regs, period2)
@@ -164,7 +127,6 @@ hadd_catch_data[, keep_adj := fifelse(
   0
 )]
 
-
 hadd_catch_data <- hadd_catch_data %>%
   mutate_if(is.numeric, replace_na, replace = 0) %>% 
   mutate(release = ifelse(keep_adj==0,1,0))  
@@ -175,11 +137,9 @@ hadd_catch_data<- subset(hadd_catch_data, select=c(tripid, keep_adj, release, pe
 summed_catch_data <- hadd_catch_data %>%
   .[,lapply(.SD, sum), by =c("period2", "catch_draw", "tripid", "month"), .SDcols = c("keep", "release")]
 
-
 summed_catch_data <- summed_catch_data %>%
   rename(tot_keep_hadd = keep, 
          tot_rel_hadd = release)
-
 
 trip_data_hadd<-summed_catch_data %>% 
   dplyr::bind_rows(hadd_zero_catch) %>%  #add the zero catch trips 
@@ -187,10 +147,8 @@ trip_data_hadd<-summed_catch_data %>%
   dplyr::select(-c("tot_cod_catch", "tot_hadd_catch"))
 
 
-#trip_data<-data.frame(trip_data[trip_data_hadd])
 trip_data<-trip_data %>% 
   dplyr::left_join(trip_data_hadd, by=c("period2", "catch_draw", "tripid",  "month"))
-
 
 rm(trip_data_hadd, catch_data_cod, cod_hadd_catch_data, cod_zero_catch, hadd_zero_catch, summed_catch_data,hadd_catch_data)
 
@@ -337,14 +295,12 @@ trip_data<-  trip_data%>%
   dplyr::select(-id)
 
 
-# Costs_new_state data sets will retain raw trip outcomes from the baseline scenario. 
-# We will merge these data to the prediction year outcomes to calculate changes in CS. 
 costs_new = subset(trip_data, select=c(tripid, period2, cost, catch_draw, tot_keep_cod, tot_rel_cod,
-                                            tot_keep_hadd, tot_rel_hadd, beta_cost, beta_opt_out, beta_sqrt_cod_keep, 
-                                            beta_sqrt_cod_release, beta_sqrt_cod_hadd_keep, 
-                                            beta_sqrt_hadd_keep, beta_sqrt_hadd_release,beta_opt_out_age, 
-                                            beta_opt_out_likely, beta_opt_out_prefer, 
-                                            likely_to_fish, fish_pref_more, age))
+                                       tot_keep_hadd, tot_rel_hadd, beta_cost, beta_opt_out, beta_sqrt_cod_keep, 
+                                       beta_sqrt_cod_release, beta_sqrt_cod_hadd_keep, 
+                                       beta_sqrt_hadd_keep, beta_sqrt_hadd_release,beta_opt_out_age, 
+                                       beta_opt_out_likely, beta_opt_out_prefer, 
+                                       likely_to_fish, fish_pref_more, age, month))
 
 names(costs_new)[names(costs_new) == "tot_keep_cod"] = "tot_keep_cod_base"
 names(costs_new)[names(costs_new) == "tot_rel_cod"] = "tot_rel_cod_base"
@@ -352,30 +308,23 @@ names(costs_new)[names(costs_new) == "tot_keep_hadd"] = "tot_keep_hadd_base"
 names(costs_new)[names(costs_new) == "tot_rel_hadd"] = "tot_rel_hadd_base"
 names(costs_new)[names(costs_new) == "cost"] = "cost_base"
 
-
-costs_new$draw =i
-costs_new$year =y
-
+saveRDS(costs_new, file = paste0(output_data_cd, "costs_data_", y,"draw", i, "_ind.rds"))
 
 trip_data <- trip_data %>%
   dplyr::mutate(period = as.numeric(as.factor(period2)))
 
-period_names<-subset(trip_data, select=c("period", "period2"))
-period_names <- period_names[!duplicated(period_names), ]
-
-
-
+#New code to calculate probability of each choice occasion
 mean_trip_data <- trip_data %>% data.table::data.table() %>% 
   .[, group_index := .GRP, by = .(period2, catch_draw, tripid)]
 
-# Now expand the data to create two alternatives, representing the alternatives available in choice survey
+# expand the data to create two alternatives, representing the alternatives available in choice survey
 mean_trip_data <- mean_trip_data %>%
   dplyr::mutate(n_alt = rep(2,nrow(.))) %>%
   tidyr::uncount(n_alt) %>%
   dplyr::mutate(alt = rep(1:2,nrow(.)/2),
                 opt_out = ifelse(alt == 2, 1, 0))
 
-#Calculate the expected utility of alts 2 parameters of the utility function,
+# calculate the expected utility of alt 2 based on the parameters of the utility function,
 setDT(mean_trip_data)
 
 # Filter only alt == 2 once, and calculate vA 
@@ -400,8 +349,7 @@ mean_trip_data<- subset(mean_trip_data, alt==1) %>%
   dplyr::mutate(tot_cat_cod=tot_keep_cod+tot_rel_cod, 
                 tot_cat_hadd=tot_keep_hadd+tot_rel_hadd)
 
-
-# Get rid of things we don't need.
+# get rid of things we don't need.
 mean_trip_data <- mean_trip_data %>% 
   dplyr::filter(alt==1) %>% 
   dplyr::select(-alt, -beta_cost,-beta_opt_out, -beta_opt_out_age, 
@@ -409,7 +357,16 @@ mean_trip_data <- mean_trip_data %>%
                 -beta_sqrt_cod_keep, -beta_sqrt_cod_release, -beta_sqrt_hadd_keep, 
                 -beta_sqrt_hadd_release, -likely_to_fish, -fish_pref_more, -period, 
                 -opt_out,-vA, -cost, -age, -exp_vA)
+all_vars<-c()
+all_vars <- names(mean_trip_data)[!names(mean_trip_data) %in% c("period2","tripid")]
+all_vars
 
+# save the first catch draw to compute correlations
+trip_data_draws<-mean_trip_data %>% 
+  filter(catch_draw==1) %>% 
+  select(period2, month, tripid, tot_keep_cod,tot_keep_hadd, tot_rel_cod, tot_rel_hadd, tot_cat_cod, tot_cat_hadd)
+
+#saveRDS(trip_data_draws, file = paste0(output_data_cd, "ktau_draws_", y,"draw", i, "_ind.rds"))
 
 # average outcomes across draws
 mean_trip_data<-mean_trip_data  %>% as.data.table() %>%
@@ -424,263 +381,102 @@ mean_trip_data <- mean_trip_data %>%
   .[]
 
 
-
-mean_trip_data_prob_catch_draw<-mean_trip_data %>% 
-  dplyr::select("period2","tripid", "catch_draw", "probA")
-
-mean_trip_data <- mean_trip_data %>%
-  dplyr::mutate(n_choice_occasions = rep(1,nrow(.))) %>%
-  dplyr::left_join(period_names, by = c("period2"))
-
-mean_trip_data<- mean_trip_data %>%
-  dplyr::mutate(tot_cod_cat=tot_keep_cod+tot_rel_cod,
-                tot_hadd_cat=tot_keep_hadd+tot_rel_hadd)
-
-
 #Now multiply the trip outcomes (catch, trip probabilities) for each choice occasion in 
 #mean_trip_pool by the expansion factor (expand), so that  each choice occasion represents a certain number of choice occasions
-# calibration_data <- calibration_data  #%>%   rename(period2 = period)
 dtrips <- directed_trips_p %>% 
   dplyr::select(c(dtrip, period2)) 
 
 mean_trip_data<-mean_trip_data %>% 
   left_join(dtrips, by = "period2") 
 
-
 mean_trip_data <-mean_trip_data %>% 
   group_by(period2) %>% 
-  dplyr::mutate(mean_prob=mean(probA), 
-                uniform=runif(n(), min=0, max=1)) %>% 
-  dplyr::arrange(period, uniform) %>% 
+  dplyr::mutate(mean_prob=mean(probA)) %>% 
   dplyr::ungroup() %>%       
   dplyr::mutate(sims=round(dtrip/mean_prob), 
                 expand=sims/n_draws, 
-                n_choice_occasions=1)    
-  
+                n_choice_occasions=1)
 
-##check code 
-#test drawing choice occasion 
-# Step 1: Make sure both datasets have the correct structure
-# data1- dtrips: period2, dtrip
-# data2- mean_trip_data: period2, probA
+mean_trip_data <- mean_trip_data %>% 
+  mutate(uniform=runif(n(), min=0, max=1)) %>% 
+  dplyr::arrange(period2, uniform)
 
-library(dplyr)
-library(purrr)
+mean_trip_data1 <- mean_trip_data %>% 
+  group_by(period2) %>%
+  mutate(id_within_group = row_number()) %>% 
+  filter(expand<1 & id_within_group<=sims) 
 
-# Make sure period2 is character in both
-dtrips <- dtrips %>% mutate(period2 = as.character(trimws(period2)))
-mean_trip_data <- mean_trip_data %>% mutate(period2 = as.character(trimws(period2)))
 
-# Sampling function
-sample_to_match <- function(df_group, dtrip_target) {
-  if (nrow(df_group) == 0 || is.na(dtrip_target)) return(NULL)
-  
-  sampled <- df_group[sample(nrow(df_group), size = 1, replace = TRUE), ]
-  total <- sampled$probA
-  
-  while (total < dtrip_target) {
-    new_row <- df_group[sample(nrow(df_group), size = 1, replace = TRUE), ]
-    sampled <- bind_rows(sampled, new_row)
-    total <- sum(sampled$probA)
-  }
-  
-  return(sampled)
-}
+mean_trip_data2 <- mean_trip_data %>% 
+  filter(expand>1)  %>% 
+  mutate(expand2=ceiling(expand)) 
 
-# Use pmap to iterate over data1 rows
-data3 <- pmap_dfr(dtrips, function(period2, dtrip, ...) {
-  subset_data2 <- mean_trip_data %>% filter(period2 == !!period2)
-  sample_to_match(subset_data2, dtrip)
-})
+row_inds <- seq_len(nrow(mean_trip_data2))
 
-data1 <- mean_trip_data %>%
-  select(sims, period2) %>%   # Replace with your actual variable names
-  distinct()
+mean_trip_data2<-mean_trip_data2 %>% 
+  slice(rep(row_inds,expand2))  
 
-# Join and sample per period2
-result <-data1 %>%
-  dplyr::select(c(sims, period2)) %>%
-  rowwise() %>%
-  mutate(sampled_choices = list(
-    mean_trip_data %>%
-      filter(period2 == .data$period2) %>%
-      slice_sample(n = sims,replace = TRUE)  # Handles when n_choice_occasions > available rows
-  )) %>%
-  unnest(sampled_choices, names_sep = "_") %>%
-  select(-sims, -period2) %>%  # Remove 'sims'
-  rename_with(~ gsub("^sampled_choices_", "", .x), starts_with("sampled_choices_"))
+mean_trip_data2 <- mean_trip_data2 %>%
+  group_by(period2) %>%
+  mutate(id_within_group = row_number()) %>% 
+  filter(id_within_group<=sims)
+
+results<-mean_trip_data1 %>% 
+  dplyr::bind_rows(mean_trip_data2)
 
 list_names = c("tot_cat_cod","tot_keep_cod","tot_rel_cod", "tot_cat_hadd","tot_keep_hadd","tot_rel_hadd",
                "probA","n_choice_occasions")
 
-aggregate_trip_data <- result %>%
+aggregate_trip_data <- results %>%
   data.table::as.data.table() %>%
-  .[,lapply(.SD, sum),  .SDcols = list_names]
-aggregate_trip_data$sim =1
-names(aggregate_trip_data)[names(aggregate_trip_data) == "probA"] = "estimated_trips"
-
-
-
-list_names = c("tot_cod_cat","tot_keep_cod","tot_rel_cod", 
-               "tot_hadd_cat","tot_keep_hadd","tot_rel_hadd",
-               "probA","n_choice_occasions" )
-
-
-mean_trip_data <- mean_trip_data %>%
-  data.table::as.data.table() %>%
-  .[,as.vector(list_names) := lapply(.SD, function(x) x * expand), .SDcols = list_names] %>%
-  .[]
-
-#mean_trip_data$sim=1
-
-#sum probability weighted catch over all choice occasions
-aggregate_trip_data <- mean_trip_data %>%
-  dplyr::select(-tripid) %>%
-  data.table::as.data.table() %>%
-  .[,lapply(.SD, sum), by = c("period2"), .SDcols = list_names]
-
+  .[,lapply(.SD, sum),  by = c("period2"), .SDcols = list_names]
 
 names(aggregate_trip_data)[names(aggregate_trip_data) == "probA"] = "estimated_trips"
 
-aggregate_trip_data$draw =i
-aggregate_trip_data$year =y
-
-rm(catch_data1, mean_trip_data, mean_trip_data_prob_catch_draw, param_draws)
+saveRDS(aggregate_trip_data, file = paste0(output_data_cd, "calibration_data_", y,"draw", i, "_ind.rds")) 
 
 
+###Compare calibration model output with MRIP 
+
+# MRIP_data <- data.frame( read.csv(paste0(input_data_cd,"total AB1B2 2010_2020 GoM.csv")))
+# MRIP_data<-MRIP_data %>% 
+#   dplyr::filter(year==y)
 
 
-#Now assess the correlation in catch versus the correlation in keep 
-#To do so, draw 10,000 catch draws in proportion to the the number of trips across the period 
-#Then compute kendall's tau for catch and for keep and save in the output list. 
+#cod
+#print("model cod harvest")
+sum(aggregate_trip_data$tot_keep_cod)
+#print("MRIP cod harvest")
+sum(MRIP_data$cod_harvest)
+#print("percent diff cod harvest")
+cod_harvest_perc_diff<-((sum(aggregate_trip_data$tot_keep_cod)-sum(MRIP_data$cod_harvest))/sum(MRIP_data$cod_harvest))*100
+cod_harvest_perc_diff
+cod_harvest_diff=abs(sum(MRIP_data$cod_harvest)-sum(aggregate_trip_data$tot_keep_cod))
 
-# period_vec3 <- predictions0 %>%
-#   dplyr::select(period2,   ntrips_alt_sum) %>% 
-#   dplyr::mutate(ntrips_alt_sum=round(ntrips_alt_sum)) %>% 
-#   dplyr::left_join(period_vec4, by=c( "period2"))
-
-trip_data<-trip_data %>% 
-  dplyr::mutate(tot_cod_catch=tot_keep_cod+tot_rel_cod, 
-                tot_hadd_catch=tot_keep_hadd+tot_rel_hadd)
-setDT(trip_data)
-
-
-#Now assess the correlation in catch versus the correlation in keep 
-#To do so, draw 10,000 catch draws in proportion to the the number of trips across the period 
-#Then compute kendall's tau for catch and for keep and save in the output list. 
-
-#Fishery-wide ktau's
-
-keep_rel_pairs_annual <- trip_data[catch_draw == 1]  # Filter first for catch_draw == 1
-keep_rel_pairs_annual <- merge(keep_rel_pairs_annual, dtrips1, by = c("month", "period2"), all.x = TRUE)  # Left join
-keep_rel_pairs_annual <- keep_rel_pairs_annual[sample(.N, 1000, prob = dtrip)]  # Weighted sample
-
-sum_keep_cod<-sum(keep_rel_pairs_annual$tot_keep_cod)
-sum_keep_hadd<-sum(keep_rel_pairs_annual$tot_keep_hadd)
-
-sum_catch_cod<-sum(keep_rel_pairs_annual$tot_cod_catch)
-sum_catch_hadd<-sum(keep_rel_pairs_annual$tot_hadd_catch)
-
-if(sum_keep_cod>0 & sum_keep_hadd>0){
-  
-  ktau_keep<- cor.test(keep_rel_pairs_annual$tot_keep_cod, 
-                       keep_rel_pairs_annual$tot_keep_hadd, method = c("kendall"))
-  
-  k_tau_keep_est<-ktau_keep[["estimate"]]
-  k_tau_keep_p<- ktau_keep[["p.value"]]
-}
-
-if(sum_keep_cod==0 | sum_keep_hadd==0){
-  
-  k_tau_keep_est<-0
-  k_tau_keep_p<- 1
-}
+sum(aggregate_trip_data$tot_cat_cod)
+sum(MRIP_data$cod_tot_cat)
+cod_tot_cat_perc_diff<-((sum(aggregate_trip_data$tot_cat_cod)-sum(MRIP_data$cod_tot_cat))/sum(MRIP_data$cod_tot_cat))*100
+cod_tot_cat_perc_diff
 
 
-if(sum_catch_cod>0 & sum_catch_hadd>0){
-  
-  ktau_catch<- cor.test(keep_rel_pairs_annual$tot_cod_catch, 
-                        keep_rel_pairs_annual$tot_hadd_catch, method = c("kendall"))
-  
-  k_tau_catch_est<-ktau_catch[["estimate"]]
-  k_tau_catch_p<- ktau_catch[["p.value"]]
-}
-
-if(sum_catch_cod==0 | sum_catch_hadd==0){
-  
-  k_tau_catch_est<-0
-  k_tau_catch_p<- 1
-}
-
-ktaus_annual<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
-ktaus_annual$domain<-"all"
-ktaus_annual$draw<-i
-ktaus_annual$month<-0
 
 
-#Fishery-wide ktau's by month
-# Perform the operations
-keep_rel_pairs_month <- trip_data[catch_draw == 1]  # Filter for catch_draw == 1
-keep_rel_pairs_month <- merge(keep_rel_pairs_month, dtrips1, by = c("period2", "month"), all.x = TRUE)  # Left join
+##haddock
+#print("model hadd harvest")
+sum(aggregate_trip_data$tot_keep_hadd)
+#print("mrip hadd harvest")
+sum(MRIP_data$hadd_harvest)
+#print("percent diff hadd harvest")
+hadd_harvest_perc_diff<-((sum(aggregate_trip_data$tot_keep_hadd)-sum(MRIP_data$hadd_harvest))/sum(MRIP_data$hadd_harvest))*100
+hadd_harvest_perc_diff
+hadd_harvest_diff=abs(sum(MRIP_data$hadd_harvest)-sum(aggregate_trip_data$tot_keep_hadd))
 
 
-# Select relevant columns
-keep_rel_pairs_month <- keep_rel_pairs_month[, .(month, tot_cod_catch, tot_hadd_catch, dtrip, tot_keep_cod, tot_keep_hadd)]
+sum(aggregate_trip_data$tot_cat_hadd)
+sum(MRIP_data$hadd_tot_cat)
+hadd_tot_cat_perc_diff<-((sum(aggregate_trip_data$tot_cat_hadd)-sum(MRIP_data$hadd_tot_cat))/sum(MRIP_data$hadd_tot_cat))*100
+hadd_tot_cat_perc_diff
 
-ktaus_month<-list()
-for(m in unique(keep_rel_pairs_month$month)){
-  
-  keep_rel_pairs_month_p<-keep_rel_pairs_month %>%   
-    dplyr::filter(month==m) %>% 
-    dplyr::slice_sample(weight_by=dtrip, n=1000) 
-  
-  sum_keep_cod<-sum(keep_rel_pairs_month_p$tot_keep_cod)
-  sum_keep_hadd<-sum(keep_rel_pairs_month_p$tot_keep_hadd)
-  
-  sum_catch_cod<-sum(keep_rel_pairs_month_p$tot_cod_catch)
-  sum_catch_hadd<-sum(keep_rel_pairs_month_p$tot_hadd_catch)
-  
-  if(sum_keep_cod>0 & sum_keep_hadd>0){
-    
-    ktau_keep<- cor.test(keep_rel_pairs_month_p$tot_keep_cod, 
-                         keep_rel_pairs_month_p$tot_keep_hadd, method = c("kendall"))
-    
-    k_tau_keep_est<-ktau_keep[["estimate"]]
-    k_tau_keep_p<- ktau_keep[["p.value"]]
-    
-  }
-  
-  if(sum_keep_cod==0 | sum_keep_hadd==0){
-    
-    k_tau_keep_est<-0
-    k_tau_keep_p<- 1
-    
-  }
-  
-  if(sum_catch_cod>0 & sum_catch_hadd>0){
-    
-    ktau_catch<- cor.test(keep_rel_pairs_month_p$tot_cod_catch, 
-                          keep_rel_pairs_month_p$tot_hadd_catch, method = c("kendall"))
-    
-    k_tau_catch_est<-ktau_catch[["estimate"]]
-    k_tau_catch_p<- ktau_catch[["p.value"]]
-  }
-  
-  if(sum_catch_cod==0 | sum_catch_hadd==0){
-    
-    k_tau_catch_est<-0
-    k_tau_catch_p<- 1
-    
-  }
-  
-  ktaus_month[[m]]<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p), names="TRUE")
-  ktaus_month[[m]]$domain<-"all"
-  ktaus_month[[m]]$draw<-i
-  ktaus_month[[m]]$month<-m
 
-}
-
-ktaus_month_all<-as.data.frame(list.stack(ktaus_month,  fill=TRUE))
-all_ktaus<-rbind.fill(ktaus_annual, ktaus_month_all)
-all_ktaus$year =y
+rm(catch_data1, mean_trip_data, mean_trip_data1, mean_trip_data2, param_draws, trip_data, results)
 

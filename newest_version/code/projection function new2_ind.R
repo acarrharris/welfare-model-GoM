@@ -9,7 +9,7 @@ p_star_hadd<-p_star_hadd_variable
 cod_hadd_catch_data <- catch_data_all %>%
   dplyr::right_join(regs_check, by="period2") %>% 
   dplyr::select(-dtrip, -period) 
-length(unique(cod_hadd_catch_data$period2))
+
 
 #Here we can loop around the the suffix on the catch variables 
 # specs<- c("corr_clayton1", "corr_clayton2","corr_clayton3","corr_clayton4","corr_clayton5","corr_clayton6","corr_clayton7","corr_clayton8",
@@ -23,14 +23,14 @@ length(unique(cod_hadd_catch_data$period2))
 #           "corr_plackett1", "corr_plackett2","corr_plackett3","corr_plackett4","corr_plackett5","corr_plackett6","corr_plackett7","corr_plackett8",
 #           "ind_plackett1", "ind_plackett2","ind_plackett3","ind_plackett4","ind_plackett5","ind_plackett6","ind_plackett7","ind_plackett8")
 
-specs<- c("corr_clayton1", "corr_clayton2","corr_clayton3","corr_clayton4","corr_clayton5","corr_clayton6","corr_clayton7","corr_clayton8",
-          "corr_frank1", "corr_frank2","corr_frank3","corr_frank4","corr_frank5","corr_frank6","corr_frank7","corr_frank8",
-          "corr_gaussian1", "corr_gaussian2","corr_gaussian3","corr_gaussian4","corr_gaussian5","corr_gaussian6","corr_gaussian7","corr_gaussian8",
-          "corr_gumbel1", "corr_gumbel2","corr_gumbel3","corr_gumbel4","corr_gumbel5","corr_gumbel6","corr_gumbel7","corr_gumbel8",
-          "corr_plackett1", "corr_plackett2","corr_plackett3","corr_plackett4","corr_plackett5","corr_plackett6","corr_plackett7","corr_plackett8")
+specs<- c("ind_clayton1", "ind_clayton2","ind_clayton3","ind_clayton4","ind_clayton5","ind_clayton6","ind_clayton7","ind_clayton8",
+          "ind_frank1", "ind_frank2","ind_frank3","ind_frank4","ind_frank5","ind_frank6","ind_frank7","ind_frank8",
+          "ind_gaussian1", "ind_gaussian2","ind_gaussian3","ind_gaussian4","ind_gaussian5","ind_gaussian6","ind_gaussian7","ind_gaussian8",
+          "ind_gumbel1", "ind_gumbel2","ind_gumbel3","ind_gumbel4","ind_gumbel5","ind_gumbel6","ind_gumbel7","ind_gumbel8",
+          "ind_plackett1", "ind_plackett2","ind_plackett3","ind_plackett4","ind_plackett5","ind_plackett6","ind_plackett7","ind_plackett8")
 
 for (k in specs){
-  #k<-"corr_clayton1"
+  #k<-"ind_frank8"
   catch_data1<-cod_hadd_catch_data %>% 
     dplyr::select(mode, month, period2, state, tripid, area, catch_draw, paste0("cod_", k), paste0("had_", k)) %>% 
     dplyr::rename(tot_cod_catch=paste0("cod_", k), tot_hadd_catch=paste0("had_", k))
@@ -70,8 +70,8 @@ for (k in specs){
   
   # Calculate keep_adj
   catch_data1a[, keep_adj := fifelse(cod_bag > 0, 
-                                       fifelse(csum_keep <= cod_bag & posskeep == 1, 1, 0), 
-                                       0)]
+                                     fifelse(csum_keep <= cod_bag & posskeep == 1, 1, 0), 
+                                     0)]
   
   # Calculate keep_tot and release
   catch_data1a[, `:=`(
@@ -81,7 +81,7 @@ for (k in specs){
   
   # Select and rename columns
   catch_data1a <- catch_data1a[, .(tripid, keep = keep_tot, release, period2, catch_draw, month)]
-
+  
   summed_catch_data <- catch_data1a %>%
     as.data.table() %>%
     .[,lapply(.SD, sum), by =c("period2", "catch_draw", "tripid", "month" ), .SDcols = c("keep", "release")]
@@ -157,8 +157,8 @@ for (k in specs){
   
   trip_data<-trip_data %>% 
     dplyr::left_join(trip_data_hadd, by=c("period2", "catch_draw", "tripid",  "month"))
-
-  param_draws<- readRDS(paste0(input_data_cd, "costs_data_", y,"draw", i,".rds")) %>% 
+  
+  param_draws<- readRDS(paste0(input_data_cd, "costs_data_",y,"draw", i,"_ind.rds")) %>% 
     select(-month)
   
   trip_data<-trip_data %>% 
@@ -171,7 +171,7 @@ for (k in specs){
   period_names <- period_names[!duplicated(period_names), ]
   
   trip_data<- trip_data %>% dplyr::arrange(period2, tripid, catch_draw)
-
+  
   
   #  utility (prediction year)
   trip_data <-trip_data %>%
@@ -260,18 +260,40 @@ for (k in specs){
                   tot_cat_hadd_new=tot_keep_hadd_new+tot_rel_hadd_new, 
                   tot_cat_cod_base=tot_keep_cod_base+tot_rel_cod_base, 
                   tot_cat_hadd_base=tot_keep_hadd_base+tot_rel_hadd_base)                
-
+  
+  
+  # split_matrix <- str_split(k, "_", simplify = TRUE)
+  # cop <- split_matrix[, 2] 
+  # 
+  # keep_rel_sample2 <- keep_rel_sample %>% 
+  #   dplyr::filter(draw==i & copula==cop) %>% 
+  #   dplyr::select(period2, tripid, catch_draw, in_sample) 
+  
+  # save the first catch draw to compute correlations
   # save the first catch draw to compute correlations
   trip_data_draws<-mean_trip_data %>% 
-    filter(catch_draw<=10) %>% 
+    filter(catch_draw<=5) %>% 
     select(period2, month, tripid, tot_keep_cod_new,tot_keep_hadd_new, tot_rel_cod_new, tot_rel_hadd_new, tot_cat_cod_new, tot_cat_hadd_new, 
            tot_keep_cod_base,tot_keep_hadd_base, tot_rel_cod_base, tot_rel_hadd_base, tot_cat_cod_base, tot_cat_hadd_base, catch_draw) %>% 
     tidyr::separate(period2, into = c("mode", "period", "area", "state")) %>% 
     dplyr::mutate(period2 = paste0(mode, "_", period, "_", area, "_", state), 
                   tot_cod_hadd_cat_new=tot_cat_cod_new+tot_cat_hadd_new) 
-    
+  
+  
   trip_data_draws$draw=i
-
+  
+  # trip_data_draws<-mean_trip_data %>% 
+  #   dplyr::right_join(keep_rel_sample2, by=c("period2","tripid", "catch_draw")) %>% 
+  #   select(in_sample, period2, month, tripid, tot_keep_cod_new,tot_keep_hadd_new, tot_rel_cod_new, tot_rel_hadd_new, tot_cat_cod_new, tot_cat_hadd_new, 
+  #          tot_keep_cod_base,tot_keep_hadd_base, tot_rel_cod_base, tot_rel_hadd_base, tot_cat_cod_base, tot_cat_hadd_base) %>% 
+  #   tidyr::separate(period2, into = c("mode", "period", "area", "state")) %>% 
+  #   dplyr::mutate(period2 = paste0(mode, "_", period, "_", area, "_", state), 
+  #                 tot_cod_hadd_cat_new=tot_cat_cod_new+tot_cat_hadd_new) 
+  # 
+  # 
+  # trip_data_draws$draw=i
+  
+  
   # average outcomes across draws
   all_vars<-c()
   all_vars <- names(mean_trip_data)[!names(mean_trip_data) %in% c("period2","tripid")]
@@ -298,13 +320,8 @@ for (k in specs){
     .[,as.vector(list_names) := lapply(.SD, function(x) x * prob0), .SDcols = list_names] %>%
     .[]
   
-
-    
-  calibration_data_table<-readRDS(paste0(input_data_cd, "calibration_data_", y,"draw",i,".rds")) %>% 
-    dplyr::select(period2, n_choice_occasions)
-
-    
-  # length(unique(calibration_data_table$period2))
+  calibration_data_table<-readRDS(paste0(input_data_cd, "calibration_data_",y,"draw", i,"_ind.rds")) %>% 
+    select(period2, n_choice_occasions)
   
   mean_trip_data<-mean_trip_data %>% 
     left_join(calibration_data_table, by = "period2") 
@@ -342,7 +359,7 @@ for (k in specs){
     dplyr::bind_rows(mean_trip_data2) %>% 
     mutate(n_choice_occasions=1)
   
-
+  
   list_names = c("tot_keep_cod_new","tot_rel_cod_new", "tot_cat_cod_new",
                  "tot_keep_hadd_new", "tot_rel_hadd_new" , "tot_cat_hadd_new",
                  "tot_keep_cod_base","tot_rel_cod_base", "tot_cat_cod_base",
@@ -359,8 +376,8 @@ for (k in specs){
   
   
   # Assess the inter-species correlation in catch versus  correlation in keep 
-    # a) Draw 10,000 catch draws in proportion to the projected number of trips across the fishing year 
-    # b) Compute kendall's tau
+  # a) Draw 10,000 catch draws in proportion to the projected number of trips across the fishing year 
+  # b) Compute kendall's tau
   
   dtrip_wts<- sims %>%
     dplyr::group_by(period2) %>%
@@ -368,11 +385,6 @@ for (k in specs){
                      .groups="drop") %>%
     dplyr::ungroup()    %>%
     mutate(weight = ntrips_alt / sum(ntrips_alt)) 
-  length(unique(sims$period2))
-  
-  unique(dtrip_wts$period2)
-  unique(sims$period2)
-  length(unique(trip_data_draws$period2))
   
   # Data for fishery-wide ktau's
   keep_rel_pairs_annual <-data.table::as.data.table(trip_data_draws) 
@@ -380,15 +392,12 @@ for (k in specs){
   keep_rel_pairs_annual <- keep_rel_pairs_annual %>%
     left_join(dtrip_wts, by = "period2")
   
- check<-keep_rel_pairs_annual %>% 
-   dplyr::filter(is.na(weight))
- 
   keep_rel_pairs_annual <- keep_rel_pairs_annual %>%
     slice_sample(n = 2000, weight_by = weight) %>%
     dplyr::mutate(tot_cod_catch_new=tot_keep_cod_new+tot_rel_cod_new,
                   tot_hadd_catch_new=tot_keep_hadd_new+tot_rel_hadd_new, 
                   tot_cod_hadd_catch_new=tot_cod_catch_new+tot_hadd_catch_new)
- 
+  
   # Data for mode-specific ktau's
   keep_rel_pairs_fh <-data.table::as.data.table(trip_data_draws) %>% 
     dplyr::filter(mode=="fh")
@@ -470,13 +479,13 @@ for (k in specs){
       dplyr::mutate(tot_cod_catch_new=tot_keep_cod_new+tot_rel_cod_new,
                     tot_hadd_catch_new=tot_keep_hadd_new+tot_rel_hadd_new, 
                     tot_cod_hadd_catch_new=tot_cod_catch_new+tot_hadd_catch_new) 
-
+    
     sum_keep_cod<-sum(trip_data_draws_month$tot_keep_cod_new)
     sum_keep_hadd<-sum(trip_data_draws_month$tot_keep_hadd_new)
     sum_catch_cod<-sum(trip_data_draws_month$tot_cat_cod_new)
     sum_catch_hadd<-sum(trip_data_draws_month$tot_cat_hadd_new)
     
-
+    
     # compute medians
     med_cod <- median(trip_data_draws_month$tot_cat_cod_new, na.rm = TRUE)
     med_hadd <- median(trip_data_draws_month$tot_cat_hadd_new, na.rm = TRUE)
@@ -561,7 +570,7 @@ for (k in specs){
     }
     # Merge everything into one row of ktaus_annual
     ktaus_month[[m]] <- cbind(data.frame( k_tau_keep_est, k_tau_keep_p, k_tau_catch_est,k_tau_catch_p,med_cod,
-                                      med_hadd),results_wide)
+                                          med_hadd),results_wide)
     # ktaus_month[[m]]<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p, 
     #                                        med_cod, med_hadd, both_above, both_below), names="TRUE")
     ktaus_month[[m]]$domain<-"all"
@@ -571,11 +580,11 @@ for (k in specs){
   }
   
   ktaus_month_all<-as.data.frame(list.stack(ktaus_month,  fill=TRUE))
-
-   #keep_rel_pairs_annual %>% count(period2)
-
   
-
+  #keep_rel_pairs_annual %>% count(period2)
+  
+  
+  
   # # Reshape z into matrix form
   # keep_rel_pairs_annual_filtered<-keep_rel_pairs_annual %>% 
   #   dplyr::filter(tot_cod_catch_new!=0 & tot_hadd_catch_new!=0) #remove zero catch of both species
@@ -590,7 +599,7 @@ for (k in specs){
   # persp3d(x_vals, y_vals, z_matrix,
   #         col = "lightgreen", xlab = "tot_cod_catch_new", ylab = "tot_hadd_catch_new", zlab = "tot_cod_hadd_catch_new")
   # 
-
+  
   ###Annual ktau estimates
   sum_keep_cod<-sum(keep_rel_pairs_annual$tot_keep_cod_new)
   sum_keep_hadd<-sum(keep_rel_pairs_annual$tot_keep_hadd_new)
@@ -677,7 +686,7 @@ for (k in specs){
   
   # Merge everything into one row of ktaus_annual
   ktaus_annual <- cbind(data.frame( k_tau_keep_est, k_tau_keep_p, k_tau_catch_est,k_tau_catch_p,med_cod,
-      med_hadd),results_wide)
+                                    med_hadd),results_wide)
   
   # ktaus_annual<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p, 
   #                                    med_cod, med_hadd, both_above, both_below), names="TRUE")
@@ -774,7 +783,7 @@ for (k in specs){
   
   # Merge everything into one row of ktaus_annual
   ktaus_fh <- cbind(data.frame( k_tau_keep_est, k_tau_keep_p, k_tau_catch_est,k_tau_catch_p,med_cod,
-                                    med_hadd),results_wide)
+                                med_hadd),results_wide)
   
   # ktaus_fh<- as.data.frame(cbind(k_tau_keep_est,k_tau_keep_p, k_tau_catch_est, k_tau_catch_p, 
   #                                med_cod, med_hadd, both_above, both_below), names="TRUE")
@@ -823,7 +832,7 @@ for (k in specs){
       names_glue = "{.value}_{percentile}"
     )
   
-
+  
   if(sum_keep_cod>0 & sum_keep_hadd>0){
     
     ktau_keep<- cor.test(keep_rel_pairs_pr$tot_keep_cod_new,
@@ -1077,7 +1086,7 @@ for (k in specs){
     )
   
   
-
+  
   
   if(sum_keep_cod>0 & sum_keep_hadd>0){
     
@@ -1125,6 +1134,7 @@ for (k in specs){
     dplyr::mutate(year=y) %>% 
     dplyr::rename(domain1=domain)
   
+  
   sims <- sims %>% 
     separate(period2, into = c("mode", "period", "area", "state"), sep = "_") %>%
     dplyr::mutate(month = as.numeric(month)) %>% 
@@ -1133,6 +1143,7 @@ for (k in specs){
   sims<-sims %>% select(-period)
   
   sims$domain<-k
+  
   assign(paste0("sims_new_", k), sims)
   
   all_ktaus$domain<-k
@@ -1140,8 +1151,6 @@ for (k in specs){
   
   keep_rel_pairs_annual$domain<-k
   assign(paste0("keep_rel_pairs_new_", k), keep_rel_pairs_annual)
-  
-
   
   # rm(results, mean_trip_data, mean_trip_data1, mean_trip_data2, param_draws, trip_data, 
   #    cod_zero_catch, hadd_zero_catch, summed_catch_data, trip_data_draws, trip_data_hadd,
@@ -1178,4 +1187,3 @@ datasets <- mget(dataset_names)
 
 # Merge the datasets
 #keep_rel_pairs <- bind_rows(datasets)
-

@@ -240,8 +240,9 @@ drop if mode=="sh"
 sort year mode period area
 rename mode mode1
 
-
 save "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\regs_base.dta", replace
+
+u "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\regs_base.dta", clear 
 
 
 clear 

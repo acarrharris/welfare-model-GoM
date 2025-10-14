@@ -8,7 +8,7 @@
 	*It also creates catch-per-trip distributions for non-SF/BSB
 	*It also exports a sample of trips that contain tip catch levels of fluke and black sea bass for the copula model
 
-/*
+
 set matsize 10000
 
 version 12.1
@@ -42,7 +42,7 @@ use `tl1'
 merge 1:m year strat_id psu_id id_code using `cl1', keep(1 3) nogenerate
  
 
-*keep if inlist(year,  2020)
+keep if inlist(year,  2021)
 
  
 /* THIS IS THE END OF THE DATA MERGING CODE */
@@ -180,14 +180,14 @@ replace area_s="GOM" if st2=="25" & strmatch(stock_region_calc,"NORTH")
 replace area_s="GBS" if st2=="25" & strmatch(stock_region_calc,"SOUTH")
 */
 
-replace area_s="GOM" if st2=="25" & inlist(nmfs_stat_area,11, 512, 513,  514)
+replace area_s="GOM" if st2=="25" & inlist(nmfs_stat_area,511, 512, 513,  514)
 replace area_s="GBS" if st2=="25" & inlist(nmfs_stat_area,521, 526, 537,  538)
 replace area_s="GOM" if st2=="25" & intsite==224
 
 keep if common_dom=="ATLCO"
 keep if area_s=="GOM"
 
-gen my_dom_id_string=common_dom+"_"+yr2
+gen my_dom_id_string=st2+"_"+common_dom+"_"+yr2
 
 
 /*5.  We sort on year, strat_id, psu_id, id_code, "no_dup", and "my_dom_id_string".
@@ -249,7 +249,7 @@ foreach var of local myvariables{
 local --i
 sort year my_dom_id
 dups my_dom_id, drop terse
-keep my_dom_id  area_s  common_dom  year
+keep my_dom_id  area_s  common_dom  year st2
 
 foreach j of numlist 1/`i'{
 	svmat b`j', names(col)

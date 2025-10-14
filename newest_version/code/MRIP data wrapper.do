@@ -61,7 +61,9 @@ else{
 
 set matsize 10000
 
+global yearlist  2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022				   
 
+global wavelist 1 2 3 4 5 6
 /*catchlist -- this assembles then names of files that are needed in the catchlist */
 /*Check to see if the file exists */	/* If the file exists, add the filename to the list if there are observations */
 global catchlist

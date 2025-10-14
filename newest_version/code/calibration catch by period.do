@@ -12,18 +12,22 @@ foreach y of local yrs{
 
 }
 
+u "E:\Lou's projects\welfare-model-GoM\input_data\cod_hadd_catch_data_1_15.dta", clear
+gen tab=1 if tot_cat_cod==0 &  tot_cat_hadd==0 
+gen above_both=1 if tot_cat_cod>2 &  tot_cat_hadd>0 
+tab above_both if year!=2022, missing
+tab above_both , missing
 
 global drawz
 forv i=1/100{
 
 set seed `i'
-
-local yrs 2021
+local yrs 2019 2020
 global yrz 
 foreach y of local yrs{
 
 import delimited using "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\directed trips and regulations 2010_2020_disaggregated.csv", clear  
-*local y=2010
+
 keep if year==`y'
 
 tostring month, gen(month1)
@@ -31,8 +35,6 @@ tostring period, gen(period1)
 tostring st, replace
 
 gen domain=month1+"_"+period1+"_"+mode+"_"+area+"_"+st
-
-*keep if domain=="4_8_pr_inshore_25"
 
 gen state="MA" if st=="25"
 replace state="NH" if st=="33" 
@@ -51,14 +53,8 @@ global domz
 foreach d of local doms{
 	
 	u `base', clear 
-	*local d "7_14_pr_inshore_25"
 	keep if domain=="`d'"
 
-	*su dtrip
-	*local trips=`r(sum)'
-	*local sims=round(`trips'*3)
-	*di `sims'
-	
 	su month
 	local mon=`r(mean)'
 	
@@ -86,7 +82,7 @@ foreach d of local doms{
 	
 	if `n'>=3000 {
 	
-	keep tot_cat_cod tot_cat_hadd month1 
+	keep tot_cat_cod tot_cat_hadd landing_cod landing_hadd month1 
 	sample 3000, count
 
 	gen domain="`d'"
@@ -98,10 +94,6 @@ foreach d of local doms{
 	bysort tripid: gen catch_draw = _n
 	sort tripid catch_draw
 	
-	*tempfile domz`d'
-	*save `domz`d'', replace
-	*global domz "$domz "`domz`d''" " 
-	
 	}
 	
 	else{
@@ -110,7 +102,7 @@ foreach d of local doms{
 		expand `expand'
 		sample 3000, count
 		
-		keep tot_cat_cod tot_cat_hadd month1
+		keep tot_cat_cod tot_cat_hadd landing_cod landing_hadd month1
 		gen domain="`d'"
 		gen mode1="`md'"
 		gen period2="`pdz'"
@@ -155,5 +147,28 @@ export delimited using "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-Go
 }
 }
 
+/*
+global catch 
+forv i=1/100{
+
+import delimted using "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\calib_catch_yr2021_draw`i'.csv"
+collapse (sum) tot_cat_cod landing_cod tot_cat_hadd landing_hadd, by(year)
+gen draw=i
+rename tot_cat_cod cod_tot_cat
+rename landing_cod cod_harvest
+rename tot_cat_hadd hadd_tot_cat
+rename landing_hadd hadd_harvest
+
+tempfile catch`i'
+save `catch`i'', replace
+global catch "$catch "`catch`i''" " 
+
+}	
+
+clear
+dsconcat $catch 
+export delimited using "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\total AB1B2 2010_2020 GoM.csv", replace 
+*/
 
 
+import delimited using "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\calib_catch_yr2021_draw17.csv"

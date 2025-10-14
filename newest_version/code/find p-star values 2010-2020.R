@@ -5,9 +5,9 @@
 #starting points 
 #y<-2020 
 
-MRIP_data <- data.frame(read.csv(paste0(input_data_cd,"total AB1B2 2010_2020 GoM.csv")))
-MRIP_data<-MRIP_data %>% 
-  dplyr::filter(year==y)
+# MRIP_data <- data.frame(read.csv(paste0(input_data_cd,"total AB1B2 2010_2020 GoM.csv")))
+# MRIP_data<-MRIP_data %>% 
+#   dplyr::filter(year==y)
 
 
 if (!(y %in% c(2018, 2019))){
@@ -51,8 +51,11 @@ hadd_achieved<-0
     
     source(paste0(input_code_cd,"calibration loop2 2010-2020.R"))
     
+    calibration_check<-readRDS(paste0(output_data_cd, "calibration_data_",y,"draw", i,".rds")) %>% 
+      select(period2, n_choice_occasions)
     
-    
+    domains<- n_distinct(calibration_check$period2)
+
     #cod
     print(paste0("model cod harvest:", round(sum(aggregate_trip_data$tot_keep_cod))))
     print(paste0("MRIP cod harvest:", round(sum(MRIP_data$cod_harvest))))
@@ -78,8 +81,12 @@ hadd_achieved<-0
     }
 
     
-    if  ((cod_achieved==1 & hadd_achieved==1))  break
+    if  ((cod_achieved==1 & hadd_achieved==1 & domains==n_periods))  break
 
+    if  ((domains!=n_periods))  {
+      seed<-seed+1
+    }
+    
     if (cod_harvest_perc_diff<0 & cod_achieved!=1){
       
       if (cod_harvest_perc_diff< -20){

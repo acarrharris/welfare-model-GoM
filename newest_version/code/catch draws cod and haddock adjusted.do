@@ -240,7 +240,6 @@ svy:total `v'_tot_cat if my_dom_id_string=="bt_2019_ATLCO"
 mat list r(table), format(%12.0gc)
 }
 */
- 
 
 
 
@@ -378,7 +377,7 @@ mat list r(table), format(%12.0gc)
 */
  
 keep if first==1
-keep year month wave area_x state mode1 tot_cat_cod tot_cat_hadd new_wp_int psu_id strat_id  hrsf ffdays2 ffdays12
+keep year month wave area_x state mode1 tot_cat_cod tot_cat_hadd new_wp_int psu_id strat_id  hrsf ffdays2 ffdays12 landing_hadd landing_cod
 
 
 * replace the hours fished and number days fished past 2/12 month variables as missing if needed
@@ -416,4 +415,15 @@ restore
 
 *save "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\cod_hadd_trips_adjusted_all_years_mode_7_26.dta", replace 
 save "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\cod_hadd_catch_data_1_15.dta", replace 
+/*
+u "C:\Users\andrew.carr-harris\Desktop\Git\welfare-model-GoM\newest_version\input_data\cod_hadd_catch_data_1_15.dta", clear 
+collapse (mean) tot_cat_cod tot_cat_hadd, by(year)
+su tot_cat_cod
+local mean =`r(mean)'
+tsset year 
+tsline tot_cat_cod, tlabel(#15, labsize(small) angle(45)) yline(`mean')
 
+su tot_cat_hadd
+local mean =`r(mean)'
+tsline tot_cat_hadd, tlabel(#15, labsize(small) angle(45)) yline(`mean')
+*/
